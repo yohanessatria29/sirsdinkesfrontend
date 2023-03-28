@@ -137,7 +137,7 @@ const RL4B = () => {
       };
       const results = await axiosJWT.get("/apisirsadmin/rlempatb", customConfig);
 
-      const rlEmpatDetails = results.data.dataRL.map((value) => {
+      const rlEmpatDetails = results.data.data.map((value) => {
         return value.rl_empat_b_details;
       });
 
@@ -149,6 +149,7 @@ const RL4B = () => {
       });
 
       setDataRL(datarlEmpatDetails);
+      setNamaFile("RL4B_" + idrs);
       setSpinner(false)
     } catch (error) {
       console.log(error);
@@ -259,11 +260,19 @@ const RL4B = () => {
               {spinner && <Spinner animation="grow" variant="success"></Spinner>}
               {spinner && <Spinner animation="grow" variant="success"></Spinner>}
             </div>
+            <DownloadTableExcel
+              filename={namafile}
+              sheet="data RL 36"
+              currentTableRef={tableRef.current}
+            >
+              <button> Export excel </button>
+            </DownloadTableExcel>
           <Table
             className={style.rlTable}
             bordered
             responsive
             style={{ width: "500%" }}
+            ref={tableRef}
           >
             <thead>
               <tr>

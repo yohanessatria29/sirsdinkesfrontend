@@ -235,6 +235,7 @@ const RL39 = () => {
         }
       });
       setDataRL(data);
+      setNamaFile("RL39_" + idrs);
       setSpinner(false)
     } catch (error) {
       // toast("Get Data Error", {
@@ -248,24 +249,6 @@ const RL39 = () => {
     <div className="container" style={{ marginTop: "70px" }}>
       <div className="row">
         <div className="col-md-6">
-          <div className="card">
-            <div className="card-body">
-              <h5 className="card-title h5">Profile Dinkes</h5>
-              <div
-                className="form-floating"
-                style={{ width: "100%", display: "inline-block" }}
-              >
-                <input
-                  type="text"
-                  className="form-control"
-                  id="floatingInput"
-                  value={namaPropinsi}
-                  disabled={true}
-                />
-                <label htmlFor="floatingInput">Provinsi </label>
-              </div>
-            </div>
-          </div>
         </div>
         <div className="col-md-6">
         <div className="card">
@@ -356,10 +339,18 @@ const RL39 = () => {
               {spinner && <Spinner animation="grow" variant="success"></Spinner>}
               {spinner && <Spinner animation="grow" variant="success"></Spinner>}
             </div>
+            <DownloadTableExcel
+              filename={namafile}
+              sheet="data RL 39"
+              currentTableRef={tableRef.current}
+            >
+              <button> Export excel </button>
+            </DownloadTableExcel>
           <Table
             className={style.rlTable}
             responsive
             bordered
+            ref={tableRef}
             // style={{ width: "100%" }}
           >
             <thead>

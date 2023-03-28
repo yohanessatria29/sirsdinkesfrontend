@@ -147,7 +147,7 @@ const RL4BSebab = () => {
       const results = await axiosJWT.get("/apisirsadmin/rlempatbsebab", customConfig);
 
       // console.log(results.data.dataRL)
-      const rlEmpatDetails = results.data.dataRL.map((value) => {
+      const rlEmpatDetails = results.data.data.map((value) => {
         return value.rl_empat_b_sebab_details;
       });
 

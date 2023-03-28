@@ -28,6 +28,8 @@ const RL36 = () => {
   const [idrs, setIdRS] = useState("");
   const tableRef = useRef(null);
   const [namafile, setNamaFile] = useState("");
+  const [namaRS, setNamaRS] = useState("");
+  const [namakabkota, setKabKota] = useState("");
 
   useEffect(() => {
     refreshToken();
@@ -114,6 +116,7 @@ const RL36 = () => {
       // // Update the options state
       setIdKabKota(e.target.value);
       setOptionsRS([...resultsRS]);
+      setKabKota(e.target.options[e.target.selectedIndex].text);
     } catch (error) {
       if (error.response) {
         console.log(error);
@@ -158,10 +161,11 @@ const RL36 = () => {
           dataRLTigaTitikEnamDetails.push(value);
         });
       });
-
       setDataRL(dataRLTigaTitikEnamDetails);
       setNamaFile("RL36_" + idrs);
       setSpinner(false);
+      setNamaRS(results.data.dataRS.RUMAH_SAKIT);
+      // setKabKota(results.)
     } catch (error) {
       console.log(error);
     }
@@ -170,26 +174,7 @@ const RL36 = () => {
   return (
     <div className="container" style={{ marginTop: "70px" }}>
       <div className="row">
-        <div className="col-md-6">
-          <div className="card">
-            <div className="card-body">
-              <h5 className="card-title h5">Profile Dinkes</h5>
-              <div
-                className="form-floating"
-                style={{ width: "100%", display: "inline-block" }}
-              >
-                <input
-                  type="text"
-                  className="form-control"
-                  id="floatingInput"
-                  value={namaPropinsi}
-                  disabled={true}
-                />
-                <label htmlFor="floatingInput">Provinsi </label>
-              </div>
-            </div>
-          </div>
-        </div>
+        <div className="col-md-6"></div>
         <div className="col-md-6">
           <div className="card">
             <div className="card-body">
@@ -211,7 +196,11 @@ const RL36 = () => {
                   >
                     {options.map((option) => {
                       return (
-                        <option key={option.value} value={option.value}>
+                        <option
+                          key={option.value}
+                          name={option.key}
+                          value={option.value}
+                        >
                           {option.key}
                         </option>
                       );
@@ -271,18 +260,7 @@ const RL36 = () => {
       </div>
       <div className="row mt-3 mb-3">
         <div className="col-md-12">
-          {/* <Link
-            to={`/rl36/tambah/`}
-            style={{ textDecoration: "none", display: "flex" }}
-          >
-            <AiFillFileAdd
-              size={30}
-              style={{ color: "gray", cursor: "pointer" }}
-            />
-            <span style={{ color: "gray" }}>RL 3.6 Pembedahan</span>
-          </Link> */}
           <div className="container" style={{ textAlign: "center" }}>
-            {/* <h5>test</h5> */}
             {spinner && <Spinner animation="grow" variant="success"></Spinner>}
             {spinner && <Spinner animation="grow" variant="success"></Spinner>}
             {spinner && <Spinner animation="grow" variant="success"></Spinner>}
@@ -315,9 +293,11 @@ const RL36 = () => {
                 >
                   No.
                 </th>
-                <th style={{ width: "20%", textAlign: "center" }}>
-                  Jenis Spesialisasi
-                </th>
+                <th>RL</th>
+                <th>Nama RS</th>
+                <th>Tahun</th>
+                <th>Kab/Kota</th>
+                <th style={{ width: "20%" }}>Jenis Spesialisasi</th>
                 <th style={{ width: "10%", textAlign: "center" }}>Total</th>
                 <th style={{ width: "10%", textAlign: "center" }}>Khusus</th>
                 <th style={{ width: "10%", textAlign: "center" }}>Besar</th>
@@ -334,69 +314,26 @@ const RL36 = () => {
                     >
                       <label htmlFor="">{index + 1}</label>
                     </td>
+                    <td>RL 3.6 </td>
+                    <td>{namaRS}</td>
+                    <td>{tahun}</td>
+                    <td>{namakabkota}</td>
                     <td>
-                      {/* <input
-                        type="text"
-                        name="jenisSpesialisasi"
-                        className="form-control"
-                        value={value.jenis_spesialisasi.nama}
-                        disabled={true}
-                      /> */}
                       <label htmlFor="">{value.jenis_spesialisasi.nama}</label>
                     </td>
                     <td>
-                      {/* <input
-                        type="number"
-                        name="Total"
-                        className="form-control"
-                        value={value.total}
-                        // onChange={(e) => changeHandler(e, index)}
-                        disabled={true}
-                      /> */}
                       <label htmlFor="">{value.total}</label>
                     </td>
                     <td>
-                      {/* <input
-                        type="text"
-                        name="Khusus"
-                        className="form-control"
-                        value={value.khusus}
-                        // onChange={(e) => changeHandler(e, index)}
-                        disabled={true}
-                      /> */}
                       <label htmlFor="">{value.khusus}</label>
                     </td>
                     <td>
-                      {/* <input
-                        type="text"
-                        name="Besar"
-                        className="form-control"
-                        value={value.besar}
-                        // onChange={(e) => changeHandler(e, index)}
-                        disabled={true}
-                      /> */}
                       <label htmlFor="">{value.besar}</label>
                     </td>
                     <td>
-                      {/* <input
-                        type="text"
-                        name="Sedang"
-                        className="form-control"
-                        value={value.sedang}
-                        // onChange={(e) => changeHandler(e, index)}
-                        disabled={true}
-                      /> */}
                       <label htmlFor="">{value.sedang}</label>
                     </td>
                     <td>
-                      {/* <input
-                        type="text"
-                        name="Kecil"
-                        className="form-control"
-                        value={value.kecil}
-                        // onChange={(e) => changeHandler(e, index)}
-                        disabled={true}
-                      /> */}
                       <label htmlFor="">{value.kecil}</label>
                     </td>
                   </tr>
