@@ -53,7 +53,7 @@ const RL4B = () => {
 
   const refreshToken = async () => {
     try {
-      const response = await axios.get("/apisirsadmin/token");
+      const response = await axios.get("/apisirs/token");
       setToken(response.data.accessToken);
       const decoded = jwt_decode(response.data.accessToken);
       setExpire(decoded.exp);
@@ -70,7 +70,7 @@ const RL4B = () => {
     async (config) => {
       const currentDate = new Date();
       if (expire * 1000 < currentDate.getTime()) {
-        const response = await axios.get("/apisirsadmin/token");
+        const response = await axios.get("/apisirs/token");
         config.headers.Authorization = `Bearer ${response.data.accessToken}`;
         setToken(response.data.accessToken);
         const decoded = jwt_decode(response.data.accessToken);
@@ -85,7 +85,7 @@ const RL4B = () => {
 
   const getDataKabkota = async () => {
     try {
-      const response = await axiosJWT.get("/apisirsadmin/kabkota");
+      const response = await axiosJWT.get("/apisirs/kabkota");
       const kabkotaDetails = response.data.data.map((value) => {
         return value;
       });
@@ -108,7 +108,7 @@ const RL4B = () => {
 
   const getStatusValidasi = async () => {
     try {
-      const response = await axios.get("/apisirsadmin/statusvalidasi");
+      const response = await axios.get("/apisirs/statusvalidasi");
       const statusValidasiTemplate = response.data.data.map((value, index) => {
         return {
           value: value.id,
@@ -122,33 +122,43 @@ const RL4B = () => {
   };
 
   const searchRS = async (e) => {
-    try {
-      const responseRS = await axiosJWT.get(
-        "/apisirsadmin/rumahsakit/" + e.target.value,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const DetailRS = responseRS.data.data.map((value) => {
-        return value;
-      });
-      const resultsRS = [];
-
-      DetailRS.forEach((value) => {
-        resultsRS.push({
-          key: value.RUMAH_SAKIT,
-          value: value.Propinsi,
+    setButtonStatus(true);
+    setCatatan(" ");
+    setStatusValidasi({
+      value: 3,
+      label: "Belum divalidasi",
+    });
+    setButtonsearch(true);
+    setOptionsRS([]);
+    if (e.target.value.length > 0) {
+      try {
+        const responseRS = await axiosJWT.get(
+          "/apisirs/rumahsakit?kabkotaid=" + e.target.value,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const DetailRS = responseRS.data.data.map((value) => {
+          return value;
         });
-      });
-      // // Update the options state
-      setIdKabKota(e.target.value);
-      setOptionsRS([...resultsRS]);
-      setKabKota(e.target.options[e.target.selectedIndex].text);
-    } catch (error) {
-      if (error.response) {
-        console.log(error);
+        const resultsRS = [];
+
+        DetailRS.forEach((value) => {
+          resultsRS.push({
+            key: value.RUMAH_SAKIT,
+            value: value.Propinsi,
+          });
+        });
+        // // Update the options state
+        setIdKabKota(e.target.value);
+        setOptionsRS([...resultsRS]);
+        // setKabKota(e.target.options[e.target.selectedIndex].text);
+      } catch (error) {
+        if (error.response) {
+          console.log(error);
+        }
       }
     }
   };
@@ -162,6 +172,12 @@ const RL4B = () => {
   };
 
   const changeHandlerRS = (event) => {
+    setButtonStatus(true);
+    setCatatan(" ");
+    setStatusValidasi({
+      value: 3,
+      label: "Belum divalidasi",
+    });
     setIdRS(event.target.value);
     setButtonsearch(false);
   };
@@ -200,10 +216,7 @@ const RL4B = () => {
               tahun: date,
             },
           };
-          const results = await axiosJWT.get(
-            "/apisirsadmin/validasi",
-            customConfig
-          );
+          const results = await axiosJWT.get("/apisirs/validasi", customConfig);
 
           if (results.data.data == null) {
           } else {
@@ -222,7 +235,7 @@ const RL4B = () => {
               },
             };
             const result = await axiosJWT.post(
-              "/apisirsadmin/validasi",
+              "/apisirs/validasi",
               {
                 rsId: idrs,
                 rlId: 19,
@@ -255,7 +268,7 @@ const RL4B = () => {
               },
             };
             await axiosJWT.patch(
-              "/apisirsadmin/validasi/" + statusDataValidasi,
+              "/apisirs/validasi/" + statusDataValidasi,
               {
                 statusValidasiId: statusValidasiId,
                 catatan: catatan,
@@ -297,10 +310,7 @@ const RL4B = () => {
           tahun: date,
         },
       };
-      const results = await axiosJWT.get(
-        "/apisirsadmin/validasi",
-        customConfig
-      );
+      const results = await axiosJWT.get("/apisirs/validasi", customConfig);
 
       if (results.data.data == null) {
         // setStatusDataValidasi()
@@ -324,47 +334,62 @@ const RL4B = () => {
   const Cari = async (e) => {
     e.preventDefault();
     setSpinner(true);
-    try {
-      const customConfig = {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        params: {
-          koders: idrs,
-          tahun: tahun,
-        },
-      };
-      const results = await axiosJWT.get(
-        "/apisirsadmin/rlempatb",
-        customConfig
-      );
+    setKabKota(
+      e.target.kabkota.options[e.target.kabkota.options.selectedIndex].label
+    );
+    setButtonStatus(true);
+    setCatatan(" ");
+    setStatusValidasi({
+      value: 3,
+      label: "Belum divalidasi",
+    });
+    if (idrs !== "") {
+      try {
+        const customConfig = {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          params: {
+            koders: idrs,
+            tahun: tahun,
+          },
+        };
+        const results = await axiosJWT.get(
+          "/apisirs/rlempatbadmin",
+          customConfig
+        );
 
-      const rlEmpatDetails = results.data.data.map((value) => {
-        return value.rl_empat_b_details;
-      });
-
-      let datarlEmpatDetails = [];
-      rlEmpatDetails.forEach((element) => {
-        element.forEach((value) => {
-          datarlEmpatDetails.push(value);
+        const rlEmpatDetails = results.data.data.map((value) => {
+          return value.rl_empat_b_details;
         });
-      });
 
-      setDataRL(datarlEmpatDetails);
-      setNamaFile("RL4B_" + idrs);
-      setNamaRS(results.data.dataRS.RUMAH_SAKIT);
-      setSpinner(false);
+        let datarlEmpatDetails = [];
+        rlEmpatDetails.forEach((element) => {
+          element.forEach((value) => {
+            datarlEmpatDetails.push(value);
+          });
+        });
 
-      if (kategoriUser === 3 && rlEmpatDetails.length > 0) {
-        setButtonStatus(false);
-      } else if (kategoriUser === 3 && rlEmpatDetails.length === 0) {
-        setButtonStatus(true);
+        setDataRL(datarlEmpatDetails);
+        setNamaFile("RL4B_" + idrs);
+        setNamaRS(results.data.dataRS.RUMAH_SAKIT);
+        setSpinner(false);
+
+        if (kategoriUser === 3 && rlEmpatDetails.length > 0) {
+          setButtonStatus(false);
+        } else if (kategoriUser === 3 && rlEmpatDetails.length === 0) {
+          setButtonStatus(true);
+        }
+      } catch (error) {
+        console.log(error);
       }
-    } catch (error) {
-      console.log(error);
+      getDataStatusValidasi();
+    } else {
+      toast("Filter Tidak Boleh Kosong...", {
+        position: toast.POSITION.TOP_RIGHT,
+      });
     }
-    getDataStatusValidasi();
   };
 
   return (

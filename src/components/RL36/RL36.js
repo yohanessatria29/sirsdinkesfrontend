@@ -47,13 +47,12 @@ const RL36 = () => {
     refreshToken();
     getDataKabkota();
     getStatusValidasi();
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const refreshToken = async () => {
     try {
-      const response = await axios.get("/apisirsadmin/token");
+      const response = await axios.get("/apisirs/token");
       setToken(response.data.accessToken);
       const decoded = jwt_decode(response.data.accessToken);
       setExpire(decoded.exp);
@@ -70,7 +69,7 @@ const RL36 = () => {
     async (config) => {
       const currentDate = new Date();
       if (expire * 1000 < currentDate.getTime()) {
-        const response = await axios.get("/apisirsadmin/token");
+        const response = await axios.get("/apisirs/token");
         config.headers.Authorization = `Bearer ${response.data.accessToken}`;
         setToken(response.data.accessToken);
         const decoded = jwt_decode(response.data.accessToken);
@@ -85,7 +84,7 @@ const RL36 = () => {
 
   const getDataKabkota = async () => {
     try {
-      const response = await axiosJWT.get("/apisirsadmin/kabkota");
+      const response = await axiosJWT.get("/apisirs/kabkota");
       const kabkotaDetails = response.data.data.map((value) => {
         return value;
       });
@@ -108,7 +107,7 @@ const RL36 = () => {
 
   const getStatusValidasi = async () => {
     try {
-      const response = await axios.get("/apisirsadmin/statusvalidasi");
+      const response = await axios.get("/apisirs/statusvalidasi");
       const statusValidasiTemplate = response.data.data.map((value, index) => {
         return {
           value: value.id,
@@ -122,35 +121,45 @@ const RL36 = () => {
   };
 
   const searchRS = async (e) => {
-    try {
-      const responseRS = await axiosJWT.get(
-        "/apisirsadmin/rumahsakit/" + e.target.value,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const DetailRS = responseRS.data.data.map((value) => {
-        return value;
-      });
-      const resultsRS = [];
-
-      DetailRS.forEach((value) => {
-        resultsRS.push({
-          key: value.RUMAH_SAKIT,
-          value: value.Propinsi,
-          kelas: value.KLS_RS,
+    setButtonStatus(true);
+    setCatatan(" ");
+    setStatusValidasi({
+      value: 3,
+      label: "Belum divalidasi",
+    });
+    setButtonsearch(true);
+    setOptionsRS([]);
+    if (e.target.value.length > 0) {
+      try {
+        const responseRS = await axiosJWT.get(
+          "/apisirs/rumahsakit?kabkotaid=" + e.target.value,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const DetailRS = responseRS.data.data.map((value) => {
+          return value;
         });
-      });
+        const resultsRS = [];
 
-      // // Update the options state
-      setIdKabKota(e.target.value);
-      setOptionsRS([...resultsRS]);
-      setKabKota(e.target.options[e.target.selectedIndex].text);
-    } catch (error) {
-      if (error.response) {
-        console.log(error);
+        DetailRS.forEach((value) => {
+          resultsRS.push({
+            key: value.RUMAH_SAKIT,
+            value: value.Propinsi,
+            kelas: value.KLS_RS,
+          });
+        });
+
+        // // Update the options state
+        setIdKabKota(e.target.value);
+        setOptionsRS([...resultsRS]);
+        // setKabKota(e.target.options[e.target.selectedIndex].text);
+      } catch (error) {
+        if (error.response) {
+          console.log(error);
+        }
       }
     }
   };
@@ -164,6 +173,12 @@ const RL36 = () => {
   };
 
   const changeHandlerRS = (event) => {
+    setButtonStatus(true);
+    setCatatan(" ");
+    setStatusValidasi({
+      value: 3,
+      label: "Belum divalidasi",
+    });
     setIdRS(event.target.value);
     setButtonsearch(false);
   };
@@ -202,10 +217,7 @@ const RL36 = () => {
               tahun: date,
             },
           };
-          const results = await axiosJWT.get(
-            "/apisirsadmin/validasi",
-            customConfig
-          );
+          const results = await axiosJWT.get("/apisirs/validasi", customConfig);
 
           if (results.data.data == null) {
           } else {
@@ -224,7 +236,7 @@ const RL36 = () => {
               },
             };
             const result = await axiosJWT.post(
-              "/apisirsadmin/validasi",
+              "/apisirs/validasi",
               {
                 rsId: idrs,
                 rlId: 6,
@@ -257,7 +269,7 @@ const RL36 = () => {
               },
             };
             await axiosJWT.patch(
-              "/apisirsadmin/validasi/" + statusDataValidasi,
+              "/apisirs/validasi/" + statusDataValidasi,
               {
                 statusValidasiId: statusValidasiId,
                 catatan: catatan,
@@ -299,10 +311,7 @@ const RL36 = () => {
           tahun: date,
         },
       };
-      const results = await axiosJWT.get(
-        "/apisirsadmin/validasi",
-        customConfig
-      );
+      const results = await axiosJWT.get("/apisirs/validasi", customConfig);
 
       if (results.data.data == null) {
         // if (kategoriUser === 3) {
@@ -321,9 +330,7 @@ const RL36 = () => {
         //   setButtonStatus(false);
         // }
         setStatusDataValidasi(results.data.data.id);
-        // alert('hi')
       }
-      // console.log(results)
     } catch (error) {
       console.log(error);
     }
@@ -332,6 +339,15 @@ const RL36 = () => {
   const Cari = async (e) => {
     e.preventDefault();
     setSpinner(true);
+    setKabKota(
+      e.target.kabkota.options[e.target.kabkota.options.selectedIndex].label
+    );
+    setButtonStatus(true);
+    setCatatan(" ");
+    setStatusValidasi({
+      value: 3,
+      label: "Belum divalidasi",
+    });
     if (idrs !== "") {
       try {
         const customConfig = {
@@ -345,7 +361,7 @@ const RL36 = () => {
           },
         };
         const results = await axiosJWT.get(
-          "/apisirsadmin/rltigatitikenam",
+          "/apisirs/rltigatitikenamadmin",
           customConfig
         );
         const rlTigaTitikEnamDetails = results.data.data.map((value) => {
@@ -453,7 +469,7 @@ const RL36 = () => {
                             return (
                               <option
                                 key={option.value}
-                                name={option.key}
+                                nama={option.key}
                                 value={option.value}
                               >
                                 {option.key}

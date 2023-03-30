@@ -54,7 +54,7 @@ const RL31 = () => {
 
   const refreshToken = async () => {
     try {
-      const response = await axios.get("/apisirsadmin/token");
+      const response = await axios.get("/apisirs/token");
       setToken(response.data.accessToken);
       const decoded = jwt_decode(response.data.accessToken);
       setExpire(decoded.exp);
@@ -71,7 +71,7 @@ const RL31 = () => {
     async (config) => {
       const currentDate = new Date();
       if (expire * 1000 < currentDate.getTime()) {
-        const response = await axios.get("/apisirsadmin/token");
+        const response = await axios.get("/apisirs/token");
         config.headers.Authorization = `Bearer ${response.data.accessToken}`;
         setToken(response.data.accessToken);
         const decoded = jwt_decode(response.data.accessToken);
@@ -86,7 +86,7 @@ const RL31 = () => {
 
   const getDataKabkota = async () => {
     try {
-      const response = await axiosJWT.get("/apisirsadmin/kabkota");
+      const response = await axiosJWT.get("/apisirs/kabkota");
       const kabkotaDetails = response.data.data.map((value) => {
         return value;
       });
@@ -109,7 +109,7 @@ const RL31 = () => {
 
   const getStatusValidasi = async () => {
     try {
-      const response = await axios.get("/apisirsadmin/statusvalidasi");
+      const response = await axios.get("/apisirs/statusvalidasi");
       const statusValidasiTemplate = response.data.data.map((value, index) => {
         return {
           value: value.id,
@@ -123,35 +123,45 @@ const RL31 = () => {
   };
 
   const searchRS = async (e) => {
-    try {
-      const responseRS = await axiosJWT.get(
-        "/apisirsadmin/rumahsakit/" + e.target.value,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const DetailRS = responseRS.data.data.map((value) => {
-        return value;
-      });
-      const resultsRS = [];
-
-      DetailRS.forEach((value) => {
-        resultsRS.push({
-          key: value.RUMAH_SAKIT,
-          value: value.Propinsi,
-          kelas: value.KLS_RS,
+    setButtonStatus(true);
+    setCatatan(" ");
+    setStatusValidasi({
+      value: 3,
+      label: "Belum divalidasi",
+    });
+    setButtonsearch(true);
+    setOptionsRS([]);
+    if (e.target.value.length > 0) {
+      try {
+        const responseRS = await axiosJWT.get(
+          "/apisirs/rumahsakit?kabkotaid=" + e.target.value,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const DetailRS = responseRS.data.data.map((value) => {
+          return value;
         });
-      });
+        const resultsRS = [];
 
-      // // Update the options state
-      setIdKabKota(e.target.value);
-      setOptionsRS([...resultsRS]);
-      setKabKota(e.target.options[e.target.selectedIndex].text);
-    } catch (error) {
-      if (error.response) {
-        console.log(error);
+        DetailRS.forEach((value) => {
+          resultsRS.push({
+            key: value.RUMAH_SAKIT,
+            value: value.Propinsi,
+            kelas: value.KLS_RS,
+          });
+        });
+
+        // // Update the options state
+        setIdKabKota(e.target.value);
+        setOptionsRS([...resultsRS]);
+        // setKabKota(e.target.options[e.target.selectedIndex].text);
+      } catch (error) {
+        if (error.response) {
+          console.log(error);
+        }
       }
     }
   };
@@ -165,12 +175,14 @@ const RL31 = () => {
   };
 
   const changeHandlerRS = (event) => {
-    // var index = event.target.selectedIndex;
-    // var optionElement = event.target.childNodes[index];
-    // var kelas = optionElement.getAttribute("kelas");
+    setButtonStatus(true);
+    setCatatan(" ");
+    setStatusValidasi({
+      value: 3,
+      label: "Belum divalidasi",
+    });
     setIdRS(event.target.value);
     setButtonsearch(false);
-    // setKelasRS(kelas);
   };
 
   const changeHandlerStatusValidasi = (selectedOption) => {
@@ -207,10 +219,7 @@ const RL31 = () => {
               tahun: date,
             },
           };
-          const results = await axiosJWT.get(
-            "/apisirsadmin/validasi",
-            customConfig
-          );
+          const results = await axiosJWT.get("/apisirs/validasi", customConfig);
 
           if (results.data.data == null) {
           } else {
@@ -229,7 +238,7 @@ const RL31 = () => {
               },
             };
             const result = await axiosJWT.post(
-              "/apisirsadmin/validasi",
+              "/apisirs/validasi",
               {
                 rsId: idrs,
                 rlId: 1,
@@ -262,7 +271,7 @@ const RL31 = () => {
               },
             };
             await axiosJWT.patch(
-              "/apisirsadmin/validasi/" + statusDataValidasi,
+              "/apisirs/validasi/" + statusDataValidasi,
               {
                 statusValidasiId: statusValidasiId,
                 catatan: catatan,
@@ -303,10 +312,7 @@ const RL31 = () => {
           tahun: date,
         },
       };
-      const results = await axiosJWT.get(
-        "/apisirsadmin/validasi",
-        customConfig
-      );
+      const results = await axiosJWT.get("/apisirs/validasi", customConfig);
 
       if (results.data.data == null) {
         // setStatusDataValidasi()
@@ -328,49 +334,64 @@ const RL31 = () => {
   const Cari = async (e) => {
     e.preventDefault();
     setSpinner(true);
-    try {
-      const customConfig = {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        params: {
-          koders: idrs,
-          tahun: tahun,
-        },
-      };
-      const results = await axiosJWT.get(
-        "/apisirsadmin/rltigatitiksatu",
-        customConfig
-      );
+    setKabKota(
+      e.target.kabkota.options[e.target.kabkota.options.selectedIndex].label
+    );
+    setButtonStatus(true);
+    setCatatan(" ");
+    setStatusValidasi({
+      value: 3,
+      label: "Belum divalidasi",
+    });
+    if (idrs !== "") {
+      try {
+        const customConfig = {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          params: {
+            koders: idrs,
+            tahun: tahun,
+          },
+        };
+        const results = await axiosJWT.get(
+          "/apisirs/rltigatitiksatuadmin",
+          customConfig
+        );
 
-      const rlTigaTitikSatuDetails = results.data.data.map((value) => {
-        return value.rl_tiga_titik_satu_details;
-      });
-
-      let dataRLTigaTitikSatuDetails = [];
-      rlTigaTitikSatuDetails.forEach((element) => {
-        element.forEach((value) => {
-          dataRLTigaTitikSatuDetails.push(value);
+        const rlTigaTitikSatuDetails = results.data.data.map((value) => {
+          return value.rl_tiga_titik_satu_details;
         });
-      });
 
-      setDataRL(dataRLTigaTitikSatuDetails);
-      setNamaFile("RL31_" + idrs);
-      setSpinner(false);
-      setNamaRS(results.data.dataRS.RUMAH_SAKIT);
-      if (kategoriUser === 3 && dataRLTigaTitikSatuDetails.length > 0) {
-        setButtonStatus(false);
-      } else if (
-        kategoriUser === 3 &&
-        dataRLTigaTitikSatuDetails.length === 0
-      ) {
-        setButtonStatus(true);
+        let dataRLTigaTitikSatuDetails = [];
+        rlTigaTitikSatuDetails.forEach((element) => {
+          element.forEach((value) => {
+            dataRLTigaTitikSatuDetails.push(value);
+          });
+        });
+
+        setDataRL(dataRLTigaTitikSatuDetails);
+        setNamaFile("RL31_" + idrs);
+        setSpinner(false);
+        setNamaRS(results.data.dataRS.RUMAH_SAKIT);
+        if (kategoriUser === 3 && dataRLTigaTitikSatuDetails.length > 0) {
+          setButtonStatus(false);
+        } else if (
+          kategoriUser === 3 &&
+          dataRLTigaTitikSatuDetails.length === 0
+        ) {
+          setButtonStatus(true);
+        }
+      } catch (error) {
+        console.log(error);
       }
-    } catch (error) {
-      console.log(error);
+      getDataStatusValidasi();
+    } else {
+      toast("Filter Tidak Boleh Kosong...", {
+        position: toast.POSITION.TOP_RIGHT,
+      });
     }
-    getDataStatusValidasi();
   };
 
   return (

@@ -53,7 +53,7 @@ const RL39 = () => {
 
   const refreshToken = async () => {
     try {
-      const response = await axios.get("/apisirsadmin/token");
+      const response = await axios.get("/apisirs/token");
       setToken(response.data.accessToken);
       const decoded = jwt_decode(response.data.accessToken);
       setExpire(decoded.exp);
@@ -70,7 +70,7 @@ const RL39 = () => {
     async (config) => {
       const currentDate = new Date();
       if (expire * 1000 < currentDate.getTime()) {
-        const response = await axios.get("/apisirsadmin/token");
+        const response = await axios.get("/apisirs/token");
         config.headers.Authorization = `Bearer ${response.data.accessToken}`;
         setToken(response.data.accessToken);
         const decoded = jwt_decode(response.data.accessToken);
@@ -85,7 +85,7 @@ const RL39 = () => {
 
   const getDataKabkota = async () => {
     try {
-      const response = await axiosJWT.get("/apisirsadmin/kabkota");
+      const response = await axiosJWT.get("/apisirs/kabkota");
       const kabkotaDetails = response.data.data.map((value) => {
         return value;
       });
@@ -108,7 +108,7 @@ const RL39 = () => {
 
   const getStatusValidasi = async () => {
     try {
-      const response = await axios.get("/apisirsadmin/statusvalidasi");
+      const response = await axios.get("/apisirs/statusvalidasi");
       const statusValidasiTemplate = response.data.data.map((value, index) => {
         return {
           value: value.id,
@@ -122,33 +122,43 @@ const RL39 = () => {
   };
 
   const searchRS = async (e) => {
-    try {
-      const responseRS = await axiosJWT.get(
-        "/apisirsadmin/rumahsakit/" + e.target.value,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const DetailRS = responseRS.data.data.map((value) => {
-        return value;
-      });
-      const resultsRS = [];
-
-      DetailRS.forEach((value) => {
-        resultsRS.push({
-          key: value.RUMAH_SAKIT,
-          value: value.Propinsi,
+    setButtonStatus(true);
+    setCatatan(" ");
+    setStatusValidasi({
+      value: 3,
+      label: "Belum divalidasi",
+    });
+    setButtonsearch(true);
+    setOptionsRS([]);
+    if (e.target.value.length > 0) {
+      try {
+        const responseRS = await axiosJWT.get(
+          "/apisirs/rumahsakit?kabkotaid=" + e.target.value,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const DetailRS = responseRS.data.data.map((value) => {
+          return value;
         });
-      });
-      // // Update the options state
-      setIdKabKota(e.target.value);
-      setOptionsRS([...resultsRS]);
-      setKabKota(e.target.options[e.target.selectedIndex].text);
-    } catch (error) {
-      if (error.response) {
-        console.log(error);
+        const resultsRS = [];
+
+        DetailRS.forEach((value) => {
+          resultsRS.push({
+            key: value.RUMAH_SAKIT,
+            value: value.Propinsi,
+          });
+        });
+        // // Update the options state
+        setIdKabKota(e.target.value);
+        setOptionsRS([...resultsRS]);
+        // setKabKota(e.target.options[e.target.selectedIndex].text);
+      } catch (error) {
+        if (error.response) {
+          console.log(error);
+        }
       }
     }
   };
@@ -162,6 +172,12 @@ const RL39 = () => {
   };
 
   const changeHandlerRS = (event) => {
+    setButtonStatus(true);
+    setCatatan(" ");
+    setStatusValidasi({
+      value: 3,
+      label: "Belum divalidasi",
+    });
     setIdRS(event.target.value);
     setButtonsearch(false);
   };
@@ -200,10 +216,7 @@ const RL39 = () => {
               tahun: date,
             },
           };
-          const results = await axiosJWT.get(
-            "/apisirsadmin/validasi",
-            customConfig
-          );
+          const results = await axiosJWT.get("/apisirs/validasi", customConfig);
 
           if (results.data.data == null) {
           } else {
@@ -222,7 +235,7 @@ const RL39 = () => {
               },
             };
             const result = await axiosJWT.post(
-              "/apisirsadmin/validasi",
+              "/apisirs/validasi",
               {
                 rsId: idrs,
                 rlId: 9,
@@ -255,7 +268,7 @@ const RL39 = () => {
               },
             };
             await axiosJWT.patch(
-              "/apisirsadmin/validasi/" + statusDataValidasi,
+              "/apisirs/validasi/" + statusDataValidasi,
               {
                 statusValidasiId: statusValidasiId,
                 catatan: catatan,
@@ -296,10 +309,7 @@ const RL39 = () => {
           tahun: date,
         },
       };
-      const results = await axiosJWT.get(
-        "/apisirsadmin/validasi",
-        customConfig
-      );
+      const results = await axiosJWT.get("/apisirs/validasi", customConfig);
 
       if (results.data.data == null) {
         // setStatusDataValidasi()
@@ -321,6 +331,15 @@ const RL39 = () => {
   const Cari = async (e) => {
     e.preventDefault();
     setSpinner(true);
+    setKabKota(
+      e.target.kabkota.options[e.target.kabkota.options.selectedIndex].label
+    );
+    setButtonStatus(true);
+    setCatatan(" ");
+    setStatusValidasi({
+      value: 3,
+      label: "Belum divalidasi",
+    });
     if (idrs !== "") {
       try {
         setSpinner(true);
@@ -336,7 +355,7 @@ const RL39 = () => {
         };
 
         const results = await axiosJWT.get(
-          "/apisirsadmin/rltigatitiksembilan",
+          "/apisirs/rltigatitiksembilanadmin",
           customConfig
         );
 
