@@ -309,22 +309,16 @@ const RL31 = () => {
       );
 
       if (results.data.data == null) {
-        if (kategoriUser === 3) {
-          setButtonStatus(false);
-        }
         // setStatusDataValidasi()
         setStatusValidasi({ value: 3, label: "Belum divalidasi" });
+        setCatatan(" ");
       } else {
         setStatusValidasi({
           value: results.data.data.status_validasi.id,
           label: results.data.data.status_validasi.nama,
         });
         setCatatan(results.data.data.catatan);
-        if (kategoriUser === 3) {
-          setButtonStatus(false);
-        }
         setStatusDataValidasi(results.data.data.id);
-        // alert('hi')
       }
     } catch (error) {
       console.log(error);
@@ -365,6 +359,14 @@ const RL31 = () => {
       setNamaFile("RL31_" + idrs);
       setSpinner(false);
       setNamaRS(results.data.dataRS.RUMAH_SAKIT);
+      if (kategoriUser === 3 && dataRLTigaTitikSatuDetails.length > 0) {
+        setButtonStatus(false);
+      } else if (
+        kategoriUser === 3 &&
+        dataRLTigaTitikSatuDetails.length === 0
+      ) {
+        setButtonStatus(true);
+      }
     } catch (error) {
       console.log(error);
     }

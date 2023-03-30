@@ -304,20 +304,15 @@ const RL4BSebab = () => {
       );
 
       if (results.data.data == null) {
-        if (kategoriUser === 3) {
-          setButtonStatus(false);
-        }
         // setStatusDataValidasi()
         setStatusValidasi({ value: 3, label: "Belum divalidasi" });
+        setCatatan(" ");
       } else {
         setStatusValidasi({
           value: results.data.data.status_validasi.id,
           label: results.data.data.status_validasi.nama,
         });
         setCatatan(results.data.data.catatan);
-        if (kategoriUser === 3) {
-          setButtonStatus(false);
-        }
         setStatusDataValidasi(results.data.data.id);
         // alert('hi')
       }
@@ -362,6 +357,12 @@ const RL4BSebab = () => {
       setNamaFile("RL4B_Sebab_" + idrs);
       setNamaRS(results.data.dataRS.RUMAH_SAKIT);
       setSpinner(false);
+
+      if (kategoriUser === 3 && datarlEmpatDetails.length > 0) {
+        setButtonStatus(false);
+      } else if (kategoriUser === 3 && datarlEmpatDetails.length === 0) {
+        setButtonStatus(true);
+      }
     } catch (error) {
       console.log(error);
     }
