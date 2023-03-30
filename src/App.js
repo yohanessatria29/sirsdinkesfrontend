@@ -29,20 +29,20 @@ function App() {
     <BrowserRouter basename={''}>
       <Routes>
         <Route path="/" element={<Login/>} />
-        <Route path="admin/beranda" element={<><NavigationBar/></>} />
+        <Route path="sirsadmin/beranda" element={<><NavigationBar/></>} />
         <Route path="/user/ubahpassword" element={<><NavigationBar/><FormUbahPassword/></>}/>
 
-        <Route path="admin/rl13" element={<><NavigationBar/><RL13/></>}/>
+        <Route path="sirsadmin/rl13" element={<><NavigationBar/><RL13/></>}/>
 
-        <Route path="admin/rl31" element={<><NavigationBar/><RL31/></>}/>
+        <Route path="sirsadmin/rl31" element={<><NavigationBar/><RL31/></>}/>
         
-        <Route path="admin/rl36" element={<><NavigationBar/><RL36/></>}/>
+        <Route path="sirsadmin/rl36" element={<><NavigationBar/><RL36/></>}/>
 
-        <Route path="admin/rl39" element={<><NavigationBar/><RL39/></>}/>
+        <Route path="sirsadmin/rl39" element={<><NavigationBar/><RL39/></>}/>
 
-        <Route path="admin/rl4b" element={<><NavigationBar/><RL4B/></>}/>
+        <Route path="sirsadmin/rl4b" element={<><NavigationBar/><RL4B/></>}/>
 
-        <Route path="admin/rl4bsebab" element={<><NavigationBar/><RL4BSebab/></>}/>
+        <Route path="sirsadmin/rl4bsebab" element={<><NavigationBar/><RL4BSebab/></>}/>
       </Routes>
     </BrowserRouter>
   );

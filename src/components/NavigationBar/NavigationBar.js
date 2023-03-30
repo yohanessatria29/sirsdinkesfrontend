@@ -24,7 +24,7 @@ const NavigationBar = () => {
     return (
         <Navbar className="navbar fixed-top navbar-expand-lg" style={{backgroundSize: "0", backgroundColor: "#E1E6EA"}}>
             <Container>
-                <Navbar.Brand as={Link} to="/beranda">
+                <Navbar.Brand as={Link} to="/sirsadmin/beranda">
                     <img
                         src={logoImage}
                         width="30"
@@ -37,17 +37,17 @@ const NavigationBar = () => {
                 <Navbar.Toggle aria-controls="basic-navbar-nav" />
                 <Navbar.Collapse id="basic-navbar-nav">
                     <Nav className="me-auto">
-                        <Nav.Link as={Link} to="/beranda">Beranda</Nav.Link>
+                        <Nav.Link as={Link} to="/sirsadmin/beranda">Beranda</Nav.Link>
                         <NavDropdown title="RL.1" id="basic-nav-dropdown">
                             <NavDropdown.Item as={Link} to="/rl12">
                                 RL 1.2 Indikator Pelayanan Rumah Sakit
                             </NavDropdown.Item>
-                            <NavDropdown.Item as={Link} to="/admin/rl13">
+                            <NavDropdown.Item as={Link} to="/sirsadmin/rl13">
                                 RL 1.3 Tempat Tidur
                             </NavDropdown.Item>
                         </NavDropdown>
                         <NavDropdown title="RL.3" id="basic-nav-dropdown">
-                            <NavDropdown.Item as={Link} to="/admin/rl31">
+                            <NavDropdown.Item as={Link} to="/sirsadmin/rl31">
                                 RL 3.1 Rawat Inap
                             </NavDropdown.Item>
                             <NavDropdown.Item as={Link} to="/rl32">
@@ -62,7 +62,7 @@ const NavigationBar = () => {
                             <NavDropdown.Item as={Link} to="/rl35">
                                 RL 3.5 Perinotologi
                             </NavDropdown.Item>
-                            <NavDropdown.Item as={Link} to="/admin/rl36">
+                            <NavDropdown.Item as={Link} to="/sirsadmin/rl36">
                                 RL 3.6 Pembedahan
                             </NavDropdown.Item>
                             <NavDropdown.Item as={Link} to="/rl37">
@@ -71,7 +71,7 @@ const NavigationBar = () => {
                             <NavDropdown.Item as={Link} to="/rl38">
                                 RL 3.8 Laboratorium
                             </NavDropdown.Item>
-                            <NavDropdown.Item as={Link} to="/admin/rl39">
+                            <NavDropdown.Item as={Link} to="/sirsadmin/rl39">
                                 RL 3.9 Rehabilitasi Medik
                             </NavDropdown.Item>
                             <NavDropdown.Item as={Link} to="/rl310">
@@ -103,10 +103,10 @@ const NavigationBar = () => {
                             <NavDropdown.Item as={Link} to="/rl4asebab">
                                 RL 4.a Penyakit Rawat Inap Sebab
                             </NavDropdown.Item>
-                            <NavDropdown.Item as={Link} to="/admin/rl4b">
+                            <NavDropdown.Item as={Link} to="/sirsadmin/rl4b">
                                 RL 4.b Penyakit Rawat Jalan
                             </NavDropdown.Item>
-                            <NavDropdown.Item as={Link} to="/admin/rl4bsebab">
+                            <NavDropdown.Item as={Link} to="/sirsadmin/rl4bsebab">
                                 RL 4.b Penyakit Rawat Jalan Sebab
                             </NavDropdown.Item>
                         </NavDropdown>

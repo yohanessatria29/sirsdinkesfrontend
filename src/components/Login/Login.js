@@ -31,7 +31,7 @@ const Login = () => {
       );
       // console.log(results.data)
       localStorage.setItem("name", results.data.data.name);
-      navigate("admin/beranda");
+      navigate("sirsadmin/beranda");
     } catch (error) {
       if (error.response) {
         toast("User Name/Password Salah !!!", {
