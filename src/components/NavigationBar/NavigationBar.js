@@ -42,12 +42,12 @@ const NavigationBar = () => {
                             <NavDropdown.Item as={Link} to="/rl12">
                                 RL 1.2 Indikator Pelayanan Rumah Sakit
                             </NavDropdown.Item>
-                            <NavDropdown.Item as={Link} to="/rl13">
+                            <NavDropdown.Item as={Link} to="/admin/rl13">
                                 RL 1.3 Tempat Tidur
                             </NavDropdown.Item>
                         </NavDropdown>
                         <NavDropdown title="RL.3" id="basic-nav-dropdown">
-                            <NavDropdown.Item as={Link} to="/rl31">
+                            <NavDropdown.Item as={Link} to="/admin/rl31">
                                 RL 3.1 Rawat Inap
                             </NavDropdown.Item>
                             <NavDropdown.Item as={Link} to="/rl32">

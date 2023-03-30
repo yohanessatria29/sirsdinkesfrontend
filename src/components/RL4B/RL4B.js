@@ -4,15 +4,16 @@ import jwt_decode from "jwt-decode";
 import style from "./FormTambahRL4B.module.css";
 import { useNavigate } from "react-router-dom";
 import { HiSaveAs } from "react-icons/hi";
-// import { ToastContainer, toast } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-// import { confirmAlert } from "react-confirm-alert";
+import { confirmAlert } from "react-confirm-alert";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import Table from "react-bootstrap/Table";
-// import { RiDeleteBin5Fill, RiEdit2Fill } from "react-icons/ri";
-// import { AiFillFileAdd } from "react-icons/ai";
+import { RiDeleteBin5Fill, RiEdit2Fill } from "react-icons/ri";
+import { AiFillFileAdd } from "react-icons/ai";
 import Spinner from "react-bootstrap/Spinner";
 import { DownloadTableExcel } from "react-export-table-to-excel";
+import Select from "react-select";
 
 const RL4B = () => {
   const [namaPropinsi, setNamaPropinsi] = useState("");
@@ -28,10 +29,24 @@ const RL4B = () => {
   const [idrs, setIdRS] = useState("");
   const tableRef = useRef(null);
   const [namafile, setNamaFile] = useState("");
+  const [namaRS, setNamaRS] = useState("");
+  const [namakabkota, setKabKota] = useState("");
+  const [statusValidasi, setStatusValidasi] = useState({
+    value: 3,
+    label: "Belum divalidasi",
+  });
+  const [statusValidasiId, setStatusValidasiId] = useState(3);
+  const [optionStatusValidasi, setOptionStatusValidasi] = useState([]);
+  const [catatan, setCatatan] = useState("");
+  const [buttonStatus, setButtonStatus] = useState(true);
+  const [statusDataValidasi, setStatusDataValidasi] = useState();
+  const [kategoriUser, setKategoriUser] = useState();
+  const [Buttonsearch, setButtonsearch] = useState(true);
 
   useEffect(() => {
     refreshToken();
     getDataKabkota();
+    getStatusValidasi();
     // CariLastYear(new Date().getFullYear() - 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -42,6 +57,7 @@ const RL4B = () => {
       setToken(response.data.accessToken);
       const decoded = jwt_decode(response.data.accessToken);
       setExpire(decoded.exp);
+      setKategoriUser(decoded.jenis_user_id);
     } catch (error) {
       if (error.response) {
         navigate("/");
@@ -90,6 +106,21 @@ const RL4B = () => {
     }
   };
 
+  const getStatusValidasi = async () => {
+    try {
+      const response = await axios.get("/apisirsadmin/statusvalidasi");
+      const statusValidasiTemplate = response.data.data.map((value, index) => {
+        return {
+          value: value.id,
+          label: value.nama,
+        };
+      });
+      setOptionStatusValidasi(statusValidasiTemplate);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const searchRS = async (e) => {
     try {
       const responseRS = await axiosJWT.get(
@@ -114,6 +145,7 @@ const RL4B = () => {
       // // Update the options state
       setIdKabKota(e.target.value);
       setOptionsRS([...resultsRS]);
+      setKabKota(e.target.options[e.target.selectedIndex].text);
     } catch (error) {
       if (error.response) {
         console.log(error);
@@ -121,9 +153,182 @@ const RL4B = () => {
     }
   };
 
+  const changeHandlerSingle = (event) => {
+    setTahun(event.target.value);
+  };
+
+  const changeHandlerCatatan = (event) => {
+    setCatatan(event.target.value);
+  };
+
+  const changeHandlerRS = (event) => {
+    setIdRS(event.target.value);
+    setButtonsearch(false);
+  };
+
+  const changeHandlerStatusValidasi = (selectedOption) => {
+    setStatusValidasiId(parseInt(selectedOption.value));
+    setStatusValidasi(selectedOption);
+    // console.log(statusValidasiId)
+  };
+
+  const Validasi = async (e) => {
+    e.preventDefault();
+    setSpinner(true);
+    let date = tahun + "-01-01";
+
+    if (statusValidasiId === 3) {
+      alert("Silahkan pilih status validasi terlebih dahulu");
+      setSpinner(false);
+    } else {
+      if (statusValidasiId === 2 && catatan === "") {
+        alert("Silahkan isi catatan apabila laporan tidak valid");
+        setSpinner(false);
+      } else if (idrs === "") {
+        alert("Silahkan pilih rumah sakit");
+        setSpinner(false);
+      } else {
+        try {
+          const customConfig = {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            params: {
+              rsid: idrs,
+              rlid: 19,
+              tahun: date,
+            },
+          };
+          const results = await axiosJWT.get(
+            "/apisirsadmin/validasi",
+            customConfig
+          );
+
+          if (results.data.data == null) {
+          } else {
+            setStatusDataValidasi(results.data.data.id);
+          }
+        } catch (error) {
+          console.log(error);
+        }
+
+        if (statusDataValidasi == null) {
+          try {
+            const customConfig = {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            };
+            const result = await axiosJWT.post(
+              "/apisirsadmin/validasi",
+              {
+                rsId: idrs,
+                rlId: 19,
+                tahun: date,
+                statusValidasiId: statusValidasiId,
+                catatan: catatan,
+              },
+              customConfig
+            );
+            // console.log(result.data)
+            setSpinner(false);
+            toast("Data Berhasil Disimpan", {
+              position: toast.POSITION.TOP_RIGHT,
+            });
+          } catch (error) {
+            toast(
+              `Data tidak bisa disimpan karena ,${error.response.data.message}`,
+              {
+                position: toast.POSITION.TOP_RIGHT,
+              }
+            );
+            setSpinner(false);
+          }
+        } else {
+          try {
+            const customConfig = {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            };
+            await axiosJWT.patch(
+              "/apisirsadmin/validasi/" + statusDataValidasi,
+              {
+                statusValidasiId: statusValidasiId,
+                catatan: catatan,
+              },
+              customConfig
+            );
+            setSpinner(false);
+            toast("Data Berhasil Diupdate", {
+              position: toast.POSITION.TOP_RIGHT,
+            });
+          } catch (error) {
+            console.log(error);
+            toast("Data Gagal Diupdate", {
+              position: toast.POSITION.TOP_RIGHT,
+            });
+            setButtonStatus(false);
+            setSpinner(false);
+          }
+        }
+
+        getDataStatusValidasi();
+      }
+    }
+  };
+
+  const getDataStatusValidasi = async () => {
+    // e.preventDefault();
+    let date = tahun + "-01-01";
+
+    try {
+      const customConfig = {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        params: {
+          rsid: idrs,
+          rlid: 19,
+          tahun: date,
+        },
+      };
+      const results = await axiosJWT.get(
+        "/apisirsadmin/validasi",
+        customConfig
+      );
+
+      if (results.data.data == null) {
+        if (kategoriUser === 3) {
+          setButtonStatus(false);
+        }
+        // setStatusDataValidasi()
+        setStatusValidasi({ value: 3, label: "Belum divalidasi" });
+      } else {
+        setStatusValidasi({
+          value: results.data.data.status_validasi.id,
+          label: results.data.data.status_validasi.nama,
+        });
+        setCatatan(results.data.data.catatan);
+        if (kategoriUser === 3) {
+          setButtonStatus(false);
+        }
+        setStatusDataValidasi(results.data.data.id);
+        // alert('hi')
+      }
+      // console.log(results)
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const Cari = async (e) => {
     e.preventDefault();
-    setSpinner(true)
+    setSpinner(true);
     try {
       const customConfig = {
         headers: {
@@ -132,10 +337,13 @@ const RL4B = () => {
         },
         params: {
           koders: idrs,
-          tahun: tahun
+          tahun: tahun,
         },
       };
-      const results = await axiosJWT.get("/apisirsadmin/rlempatb", customConfig);
+      const results = await axiosJWT.get(
+        "/apisirsadmin/rlempatb",
+        customConfig
+      );
 
       const rlEmpatDetails = results.data.data.map((value) => {
         return value.rl_empat_b_details;
@@ -150,96 +358,155 @@ const RL4B = () => {
 
       setDataRL(datarlEmpatDetails);
       setNamaFile("RL4B_" + idrs);
-      setSpinner(false)
+      setNamaRS(results.data.dataRS.RUMAH_SAKIT);
+      setSpinner(false);
     } catch (error) {
       console.log(error);
     }
-  };
-
-  const changeHandlerSingle = (event) => {
-    setTahun(event.target.value);
-  };
-
-  const changeHandlerRS = (event) => {
-    setIdRS(event.target.value);
+    getDataStatusValidasi();
   };
 
   return (
     <div className="container" style={{ marginTop: "70px" }}>
       <div className="row">
         <div className="col-md-6">
-        </div>
-        <div className="col-md-6">
           <div className="card">
-          <div className="card-body">
-              <form onSubmit={Cari}>
-                <h5 className="card-title h5">
-                  Cari Rumah Sakit Dan Periode Laporan
-                </h5>
-                <div
-                  className="form-floating"
-                  style={{ width: "100%", display: "inline-block" }}
-                >
-                  <select
-                    name="kabkota"
-                    typeof="select"
-                    className="form-control"
-                    id="floatingselect"
-                    placeholder="Kab/Kota"
-                    onChange={searchRS}
-                  >
-                    {options.map((option) => {
-                      return (
-                        <option key={option.value} value={option.value}>
-                          {option.key}
-                        </option>
-                      );
-                    })}
-                  </select>
-                  <label htmlFor="floatingInput">Kab. Kota :</label>
-                </div>
-
-                <div
-                  className="form-floating"
-                  style={{ width: "100%", display: "inline-block" }}
-                >
-                  <select
-                    name="rumahsakit"
-                    typeof="select"
-                    className="form-control"
-                    id="floatingselect"
-                    placeholder="Rumah Sakit"
-                    onChange={(e) => changeHandlerRS(e)}
-                  >
-                    <option value="">Pilih Rumah Sakit</option>
-                    {optionsrs.map((option) => {
-                      return (
-                        <option key={option.value} value={option.value}>
-                          {option.key}
-                        </option>
-                      );
-                    })}
-                  </select>
-                  <label htmlFor="floatingInput">Rumah Sakit :</label>
-                </div>
-
+            <div className="card-body">
+              <h5 className="card-title h5">Validasi RL 4B</h5>
+              <form onSubmit={Validasi}>
+                <Select
+                  options={optionStatusValidasi}
+                  className="form-control"
+                  name="status_validasi_id"
+                  id="status_validasi_id"
+                  onChange={changeHandlerStatusValidasi}
+                  value={statusValidasi}
+                  isDisabled={buttonStatus}
+                />
                 <div
                   className="form-floating"
                   style={{ width: "100%", display: "inline-block" }}
                 >
                   <input
-                    name="tahun"
+                    name="catatan"
                     type="text"
                     className="form-control"
-                    id="floatingInput"
-                    placeholder="Tahun"
-                    value={tahun}
-                    onChange={(e) => changeHandlerSingle(e)}
+                    id="floatingInputCatatan"
+                    placeholder="catatan"
+                    value={catatan}
+                    onChange={(e) => changeHandlerCatatan(e)}
+                    disabled={buttonStatus}
                   />
-                  <label htmlFor="floatingInput">Tahun</label>
+                  <label htmlFor="floatingInputCatatan">Catatan :</label>
                 </div>
-                <div className="mt-3 mb-3">
-                  <button type="submit" className="btn btn-outline-success">
+                <div className="mt-3">
+                  <ToastContainer />
+                  <button
+                    type="submit"
+                    disabled={buttonStatus}
+                    className="btn btn-outline-success"
+                    hidden={buttonStatus}
+                  >
+                    <HiSaveAs size={20} /> Simpan
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-6">
+          <div className="card">
+            <div className="card-body">
+              <h5 className="card-title h5">Filter RL 4B</h5>
+              <form onSubmit={Cari}>
+                <div className="col-md-12">
+                  <div className="row">
+                    <div className="col-md-12">
+                      <div
+                        className="form-floating"
+                        style={{ width: "100%", display: "inline-block" }}
+                      >
+                        <select
+                          name="kabkota"
+                          typeof="select"
+                          className="form-control"
+                          id="floatingselect"
+                          placeholder="Kab/Kota"
+                          onChange={searchRS}
+                        >
+                          {options.map((option) => {
+                            return (
+                              <option
+                                key={option.value}
+                                name={option.key}
+                                value={option.value}
+                              >
+                                {option.key}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <label htmlFor="floatingInput">Kab. Kota :</label>
+                      </div>
+                    </div>
+
+                    <div className="col-md-8">
+                      <div
+                        className="form-floating"
+                        style={{ width: "100%", display: "inline-block" }}
+                      >
+                        <select
+                          name="rumahsakit"
+                          typeof="select"
+                          className="form-control"
+                          id="floatingselect"
+                          placeholder="Rumah Sakit"
+                          onChange={(e) => changeHandlerRS(e)}
+                        >
+                          <option value="">Pilih Rumah Sakit</option>
+                          {optionsrs.map((option) => {
+                            return (
+                              <option
+                                key={option.value}
+                                value={option.value}
+                                kelas={option.kelas}
+                              >
+                                {option.key}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <label htmlFor="floatingInput">Rumah Sakit :</label>
+                      </div>
+                    </div>
+
+                    <div className="col-md-4">
+                      <div
+                        className="form-floating"
+                        style={{ width: "100%", display: "inline-block" }}
+                      >
+                        <input
+                          name="tahun"
+                          type="text"
+                          className="form-control"
+                          id="floatingInput"
+                          placeholder="Tahun"
+                          value={tahun}
+                          onChange={(e) => changeHandlerSingle(e)}
+                        />
+                        <label htmlFor="floatingInput">Tahun</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  <button
+                    type="submit"
+                    disabled={Buttonsearch}
+                    className="btn btn-outline-success"
+                    hidden={Buttonsearch}
+                  >
                     <HiSaveAs /> Cari
                   </button>
                 </div>
@@ -250,23 +517,24 @@ const RL4B = () => {
       </div>
       <div className="row mt-3 mb-3">
         <div className="col-md-12">
-          
           <div className="container" style={{ textAlign: "center" }}>
-              {/* <h5>test</h5> */}
-              {spinner && <Spinner animation="grow" variant="success"></Spinner>}
-              {spinner && <Spinner animation="grow" variant="success"></Spinner>}
-              {spinner && <Spinner animation="grow" variant="success"></Spinner>}
-              {spinner && <Spinner animation="grow" variant="success"></Spinner>}
-              {spinner && <Spinner animation="grow" variant="success"></Spinner>}
-              {spinner && <Spinner animation="grow" variant="success"></Spinner>}
-            </div>
-            <DownloadTableExcel
-              filename={namafile}
-              sheet="data RL 36"
-              currentTableRef={tableRef.current}
-            >
-              <button> Export excel </button>
-            </DownloadTableExcel>
+            {/* <h5>test</h5> */}
+            {spinner && <Spinner animation="grow" variant="success"></Spinner>}
+            {spinner && <Spinner animation="grow" variant="success"></Spinner>}
+            {spinner && <Spinner animation="grow" variant="success"></Spinner>}
+            {spinner && <Spinner animation="grow" variant="success"></Spinner>}
+            {spinner && <Spinner animation="grow" variant="success"></Spinner>}
+            {spinner && <Spinner animation="grow" variant="success"></Spinner>}
+          </div>
+          <DownloadTableExcel
+            filename={namafile}
+            sheet="data RL 4B"
+            currentTableRef={tableRef.current}
+          >
+            <button className="btn btn-outline-success mb-2">
+              Export Excel
+            </button>
+          </DownloadTableExcel>
           <Table
             className={style.rlTable}
             bordered
@@ -284,6 +552,10 @@ const RL4B = () => {
                 >
                   No.
                 </th>
+                <th>RL</th>
+                <th>Nama RS</th>
+                <th>Tahun</th>
+                <th>Kab/Kota</th>
                 <th
                   style={{
                     textAlign: "left",
@@ -325,194 +597,122 @@ const RL4B = () => {
                     >
                       <label>{index + 1}</label>
                     </td>
-                    
+                    <td>RL 4B</td>
+                    <td>{namaRS}</td>
+                    <td>{value.tahun}</td>
+                    <td>{namakabkota}</td>
                     <td style={{ textAlign: "left" }}>
                       <label>{value.jenis_golongan_sebab_penyakit.nama}</label>
                     </td>
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jmlh_pas_kasus_umur_sex_0_6hr_l}
-                        disabled
-                      />
+                      <label htmlFor="">
+                        {value.jmlh_pas_kasus_umur_sex_0_6hr_l}
+                      </label>
                     </td>
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jmlh_pas_kasus_umur_sex_0_6hr_p}
-                        disabled
-                      />
-                    </td>
-
-                    <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jmlh_pas_kasus_umur_sex_6_28hr_l}
-                        disabled
-                      />
+                      <label htmlFor="">
+                        {value.jmlh_pas_kasus_umur_sex_0_6hr_p}
+                      </label>
                     </td>
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jmlh_pas_kasus_umur_sex_6_28hr_p}
-                        disabled
-                      />
+                      <label htmlFor="">
+                        {value.jmlh_pas_kasus_umur_sex_6_28hr_l}
+                      </label>
+                    </td>
+                    <td>
+                      <label htmlFor="">
+                        {value.jmlh_pas_kasus_umur_sex_6_28hr_p}
+                      </label>
                     </td>
 
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jmlh_pas_kasus_umur_sex_28hr_1th_l}
-                        disabled
-                      />
+                      <label htmlFor="">
+                        {value.jmlh_pas_kasus_umur_sex_28hr_1th_l}
+                      </label>
                     </td>
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jmlh_pas_kasus_umur_sex_28hr_1th_p}
-                        disabled
-                      />
+                      <label htmlFor="">
+                        {value.jmlh_pas_kasus_umur_sex_28hr_1th_p}
+                      </label>
                     </td>
 
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jmlh_pas_kasus_umur_sex_1_4th_l}
-                        disabled
-                      />
+                      <label htmlFor="">
+                        {value.jmlh_pas_kasus_umur_sex_1_4th_l}
+                      </label>
                     </td>
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jmlh_pas_kasus_umur_sex_1_4th_p}
-                        disabled
-                      />
+                      <label htmlFor="">
+                        {value.jmlh_pas_kasus_umur_sex_1_4th_p}
+                      </label>
                     </td>
 
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jmlh_pas_kasus_umur_sex_4_14th_l}
-                        disabled
-                      />
+                      <label htmlFor="">
+                        {value.jmlh_pas_kasus_umur_sex_4_14th_l}
+                      </label>
                     </td>
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jmlh_pas_kasus_umur_sex_4_14th_p}
-                        disabled
-                      />
+                      <label htmlFor="">
+                        {value.jmlh_pas_kasus_umur_sex_4_14th_p}
+                      </label>
                     </td>
 
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jmlh_pas_kasus_umur_sex_14_24th_l}
-                        disabled
-                      />
+                      <label htmlFor="">
+                        {value.jmlh_pas_kasus_umur_sex_14_24th_l}
+                      </label>
                     </td>
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jmlh_pas_kasus_umur_sex_14_24th_p}
-                        disabled
-                      />
+                      <label htmlFor="">
+                        {value.jmlh_pas_kasus_umur_sex_14_24th_p}
+                      </label>
                     </td>
 
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jmlh_pas_kasus_umur_sex_24_44th_l}
-                        disabled
-                      />
+                      <label htmlFor="">
+                        {value.jmlh_pas_kasus_umur_sex_24_44th_l}
+                      </label>
                     </td>
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jmlh_pas_kasus_umur_sex_24_44th_p}
-                        disabled
-                      />
+                      <label htmlFor="">
+                        {value.jmlh_pas_kasus_umur_sex_24_44th_p}
+                      </label>
                     </td>
 
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jmlh_pas_kasus_umur_sex_44_64th_l}
-                        disabled
-                      />
+                      <label htmlFor="">
+                        {value.jmlh_pas_kasus_umur_sex_44_64th_l}
+                      </label>
                     </td>
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jmlh_pas_kasus_umur_sex_44_64th_p}
-                        disabled
-                      />
+                      <label htmlFor="">
+                        {value.jmlh_pas_kasus_umur_sex_44_64th_p}
+                      </label>
                     </td>
 
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jmlh_pas_kasus_umur_sex_lebih_64th_l}
-                        disabled
-                      />
+                      <label htmlFor="">
+                        {value.jmlh_pas_kasus_umur_sex_lebih_64th_l}
+                      </label>
                     </td>
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jmlh_pas_kasus_umur_sex_lebih_64th_p}
-                        disabled
-                      />
+                      <label htmlFor="">
+                        {value.jmlh_pas_kasus_umur_sex_lebih_64th_p}
+                      </label>
                     </td>
 
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.kasus_baru_l}
-                        disabled
-                      />
+                      <label htmlFor="">{value.kasus_baru_l}</label>
                     </td>
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.kasus_baru_p}
-                        disabled
-                      />
+                      <label htmlFor="">{value.kasus_baru_p}</label>
                     </td>
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jumlah_kasus_baru}
-                        disabled
-                      />
+                      <label htmlFor="">{value.jumlah_kasus_baru}</label>
                     </td>
                     <td>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={value.jumlah_kunjungan}
-                        disabled
-                      />
+                      <label htmlFor="">{value.jumlah_kunjungan}</label>
                     </td>
                   </tr>
                 );

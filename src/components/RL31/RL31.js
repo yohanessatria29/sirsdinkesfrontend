@@ -1,358 +1,679 @@
-import React, { useState, useEffect } from 'react'
-import axios from 'axios'
-import jwt_decode from 'jwt-decode'
-import { useNavigate, Link } from 'react-router-dom'
-import style from './FormTambahRL31.module.css'
-import { HiSaveAs } from 'react-icons/hi'
-import { RiDeleteBin5Fill, RiEdit2Fill } from 'react-icons/ri'
-import { AiFillFileAdd } from 'react-icons/ai'
-import { confirmAlert } from 'react-confirm-alert'
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css'
-import 'react-confirm-alert/src/react-confirm-alert.css'
-import Table from 'react-bootstrap/Table'
+import React, { useState, useEffect, useRef } from "react";
+import axios from "axios";
+import jwt_decode from "jwt-decode";
+import { useNavigate, Link } from "react-router-dom";
+import style from "./FormTambahRL31.module.css";
+import { HiSaveAs } from "react-icons/hi";
+import { RiDeleteBin5Fill, RiEdit2Fill } from "react-icons/ri";
+import { AiFillFileAdd } from "react-icons/ai";
+import { confirmAlert } from "react-confirm-alert";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import "react-confirm-alert/src/react-confirm-alert.css";
+import Table from "react-bootstrap/Table";
+import Spinner from "react-bootstrap/Spinner";
+import { DownloadTableExcel } from "react-export-table-to-excel";
+import { Typeahead } from "react-bootstrap-typeahead";
+import Select from "react-select";
 
 const RL31 = () => {
-    const [tahun, setTahun] = useState('')
-    const [namaRS, setNamaRS] = useState('')
-    const [alamatRS, setAlamatRS] = useState('')
-    const [namaPropinsi, setNamaPropinsi] = useState('')
-    const [namaKabKota, setNamaKabKota] = useState('')
-    const [dataRL, setDataRL] = useState([])
-    const [token, setToken] = useState('')
-    const [expire, setExpire] = useState('')
-    const navigate = useNavigate()
+  const [tahun, setTahun] = useState(new Date().getFullYear() - 1);
+  const [namaPropinsi, setNamaPropinsi] = useState("");
+  const [namaKabKota, setNamaKabKota] = useState("");
+  const [dataRL, setDataRL] = useState([]);
+  const [token, setToken] = useState("");
+  const [expire, setExpire] = useState("");
+  const navigate = useNavigate();
+  const [spinner, setSpinner] = useState(false);
+  const [options, setOptions] = useState([]);
+  const [optionsrs, setOptionsRS] = useState([]);
+  const [idkabkota, setIdKabKota] = useState("");
+  const [idrs, setIdRS] = useState("");
+  const tableRef = useRef(null);
+  const [namafile, setNamaFile] = useState("");
+  const [namaRS, setNamaRS] = useState("");
+  const [namakabkota, setKabKota] = useState("");
+  const [statusValidasi, setStatusValidasi] = useState({
+    value: 3,
+    label: "Belum divalidasi",
+  });
+  const [statusValidasiId, setStatusValidasiId] = useState(3);
+  const [optionStatusValidasi, setOptionStatusValidasi] = useState([]);
+  const [catatan, setCatatan] = useState("");
+  const [buttonStatus, setButtonStatus] = useState(true);
+  const [statusDataValidasi, setStatusDataValidasi] = useState();
+  const [kategoriUser, setKategoriUser] = useState();
+  const [Buttonsearch, setButtonsearch] = useState(true);
 
-    useEffect(() => {
-        refreshToken()
-        const getLastYear = async () =>{
-            const date = new Date()
-            setTahun(date.getFullYear() - 1)
-            return date.getFullYear() - 1
+  useEffect(() => {
+    refreshToken();
+    getDataKabkota();
+    getStatusValidasi();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const refreshToken = async () => {
+    try {
+      const response = await axios.get("/apisirsadmin/token");
+      setToken(response.data.accessToken);
+      const decoded = jwt_decode(response.data.accessToken);
+      setExpire(decoded.exp);
+      setKategoriUser(decoded.jenis_user_id);
+    } catch (error) {
+      if (error.response) {
+        navigate("/");
+      }
+    }
+  };
+
+  const axiosJWT = axios.create();
+  axiosJWT.interceptors.request.use(
+    async (config) => {
+      const currentDate = new Date();
+      if (expire * 1000 < currentDate.getTime()) {
+        const response = await axios.get("/apisirsadmin/token");
+        config.headers.Authorization = `Bearer ${response.data.accessToken}`;
+        setToken(response.data.accessToken);
+        const decoded = jwt_decode(response.data.accessToken);
+        setExpire(decoded.exp);
+      }
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
+    }
+  );
+
+  const getDataKabkota = async () => {
+    try {
+      const response = await axiosJWT.get("/apisirsadmin/kabkota");
+      const kabkotaDetails = response.data.data.map((value) => {
+        return value;
+      });
+
+      const results = [];
+      kabkotaDetails.forEach((value) => {
+        results.push({
+          key: value.nama,
+          value: value.id,
+        });
+      });
+      // Update the options state
+      setOptions([{ key: "Piih Kab/Kota", value: "" }, ...results]);
+    } catch (error) {
+      if (error.response) {
+        navigate("/");
+      }
+    }
+  };
+
+  const getStatusValidasi = async () => {
+    try {
+      const response = await axios.get("/apisirsadmin/statusvalidasi");
+      const statusValidasiTemplate = response.data.data.map((value, index) => {
+        return {
+          value: value.id,
+          label: value.nama,
+        };
+      });
+      setOptionStatusValidasi(statusValidasiTemplate);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const searchRS = async (e) => {
+    try {
+      const responseRS = await axiosJWT.get(
+        "/apisirsadmin/rumahsakit/" + e.target.value,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-        getLastYear().then((results) => {
-            getDataRLTigaTitikSatu(results)
-        })
-        
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    },[])
+      );
+      const DetailRS = responseRS.data.data.map((value) => {
+        return value;
+      });
+      const resultsRS = [];
 
-    const refreshToken = async() => {
+      DetailRS.forEach((value) => {
+        resultsRS.push({
+          key: value.RUMAH_SAKIT,
+          value: value.Propinsi,
+          kelas: value.KLS_RS,
+        });
+      });
+
+      // // Update the options state
+      setIdKabKota(e.target.value);
+      setOptionsRS([...resultsRS]);
+      setKabKota(e.target.options[e.target.selectedIndex].text);
+    } catch (error) {
+      if (error.response) {
+        console.log(error);
+      }
+    }
+  };
+
+  const changeHandlerSingle = (event) => {
+    setTahun(event.target.value);
+  };
+
+  const changeHandlerCatatan = (event) => {
+    setCatatan(event.target.value);
+  };
+
+  const changeHandlerRS = (event) => {
+    // var index = event.target.selectedIndex;
+    // var optionElement = event.target.childNodes[index];
+    // var kelas = optionElement.getAttribute("kelas");
+    setIdRS(event.target.value);
+    setButtonsearch(false);
+    // setKelasRS(kelas);
+  };
+
+  const changeHandlerStatusValidasi = (selectedOption) => {
+    setStatusValidasiId(parseInt(selectedOption.value));
+    setStatusValidasi(selectedOption);
+    // console.log(statusValidasiId)
+  };
+
+  const Validasi = async (e) => {
+    e.preventDefault();
+    setSpinner(true);
+    let date = tahun + "-01-01";
+
+    if (statusValidasiId === 3) {
+      alert("Silahkan pilih status validasi terlebih dahulu");
+      setSpinner(false);
+    } else {
+      if (statusValidasiId === 2 && catatan === "") {
+        alert("Silahkan isi catatan apabila laporan tidak valid");
+        setSpinner(false);
+      } else if (idrs === "") {
+        alert("Silahkan pilih rumah sakit");
+        setSpinner(false);
+      } else {
         try {
-            const response = await axios.get('/apisirs/token')
-            setToken(response.data.accessToken)
-            const decoded = jwt_decode(response.data.accessToken)
-            setExpire(decoded.exp)
-            getDataRS(decoded.rsId)
-        } catch (error) {
-            if(error.response) {
-                navigate('/')
-            }
-        }
-    }
-
-    const axiosJWT = axios.create()
-    axiosJWT.interceptors.request.use(async(config) => {
-        const currentDate = new Date()
-        if (expire * 1000 < currentDate.getTime()) {
-            const response = await axios.get('/apisirs/token')
-            config.headers.Authorization = `Bearer ${response.data.accessToken}`
-            setToken(response.data.accessToken)
-            const decoded = jwt_decode(response.data.accessToken)
-            setExpire(decoded.exp)
-        }
-        return config
-    }, (error) => {
-        return Promise.reject(error)
-    })
-
-    const getDataRS = async (id) => {
-        try {
-            const response = await axiosJWT.get('/apisirs/rumahsakit/' + id)
-            setNamaRS(response.data.data[0].nama)
-            setAlamatRS(response.data.data[0].alamat)
-            setNamaPropinsi(response.data.data[0].propinsi.nama)
-            setNamaKabKota(response.data.data[0].kabKota.nama)
-        } catch (error) {
-            
-        }
-    }
-
-    const changeHandlerSingle = (event) => {
-        setTahun(event.target.value)
-    }
-
-    const changeHandler = (event, index) => {
-        const name = event.target.name
-        if (name === 'check') {
-            if (event.target.checked === true) {
-                hapus()
-            } else if (event.target.checked === false) {
-                console.log('hello2')
-            }
-        }
-    }
-
-    const getDataRLTigaTitikSatu = async (event) => {
-        try {
-            const customConfig = {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                params: {
-                    tahun: event
-                }
-            }
-            const results = await axiosJWT.get('/apisirs/rltigatitiksatu',
-                customConfig)
-
-            const rlTigaTitikSatuDetails = results.data.data.map((value) => {
-                return value.rl_tiga_titik_satu_details
-            })
-
-            let dataRLTigaTitikSatuDetails = []
-            rlTigaTitikSatuDetails.forEach(element => {
-                element.forEach(value => {
-                    dataRLTigaTitikSatuDetails.push(value)
-                })
-            })
-            setDataRL(dataRLTigaTitikSatuDetails)
-        } catch (error) {
-            console.log(error)
-        }
-    }
-
-    const Cari = async (e) => {
-        e.preventDefault()
-        try {
-            const customConfig = {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                params: {
-                    tahun: tahun
-                }
-            }
-            const results = await axiosJWT.get('/apisirs/rltigatitiksatu',
-                customConfig)
-
-            const rlTigaTitikSatuDetails = results.data.data.map((value) => {
-                return value.rl_tiga_titik_satu_details
-            })
-
-            let dataRLTigaTitikSatuDetails = []
-            rlTigaTitikSatuDetails.forEach(element => {
-                element.forEach(value => {
-                    dataRLTigaTitikSatuDetails.push(value)
-                })
-            })
-
-            setDataRL(dataRLTigaTitikSatuDetails)
-        } catch (error) {
-            console.log(error)
-        }
-    }
-
-    const hapusData = async(id) => {
-        const customConfig = {
+          const customConfig = {
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            }
-        }
-        try {
-            await axiosJWT.delete(`/apisirs/rltigatitiksatu/${id}`,
-                customConfig)
-            toast('Data Berhasil Dihapus', {
-                position: toast.POSITION.TOP_RIGHT
-            })
-            setDataRL((current) =>
-                current.filter((value) => value.id !== id)
-            )
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            params: {
+              rsid: idrs,
+              rlid: 1,
+              tahun: date,
+            },
+          };
+          const results = await axiosJWT.get(
+            "/apisirsadmin/validasi",
+            customConfig
+          );
+
+          if (results.data.data == null) {
+          } else {
+            setStatusDataValidasi(results.data.data.id);
+          }
         } catch (error) {
-            console.log(error)
-            toast('Data Gagal Disimpan', {
-                position: toast.POSITION.TOP_RIGHT
-            })
+          console.log(error);
         }
+
+        if (statusDataValidasi == null) {
+          try {
+            const customConfig = {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            };
+            const result = await axiosJWT.post(
+              "/apisirsadmin/validasi",
+              {
+                rsId: idrs,
+                rlId: 1,
+                tahun: date,
+                statusValidasiId: statusValidasiId,
+                catatan: catatan,
+              },
+              customConfig
+            );
+            // console.log(result.data)
+            setSpinner(false);
+            toast("Data Berhasil Disimpan", {
+              position: toast.POSITION.TOP_RIGHT,
+            });
+          } catch (error) {
+            toast(
+              `Data tidak bisa disimpan karena ,${error.response.data.message}`,
+              {
+                position: toast.POSITION.TOP_RIGHT,
+              }
+            );
+            setSpinner(false);
+          }
+        } else {
+          try {
+            const customConfig = {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            };
+            await axiosJWT.patch(
+              "/apisirsadmin/validasi/" + statusDataValidasi,
+              {
+                statusValidasiId: statusValidasiId,
+                catatan: catatan,
+              },
+              customConfig
+            );
+            setSpinner(false);
+            toast("Data Berhasil Diupdate", {
+              position: toast.POSITION.TOP_RIGHT,
+            });
+          } catch (error) {
+            console.log(error);
+            toast("Data Gagal Diupdate", {
+              position: toast.POSITION.TOP_RIGHT,
+            });
+            setButtonStatus(false);
+            setSpinner(false);
+          }
+        }
+
+        getDataStatusValidasi();
+      }
     }
+  };
 
-    const hapus = (id) => {
-        confirmAlert({
-            title: 'Konfirmasi Penghapusan',
-            message: 'Apakah Anda Yakin? ',
-            buttons: [
-                {
-                    label: 'Yes',
-                    onClick: () => {
-                        hapusData(id)
-                    }
-                },
-                {
-                    label: 'No'
-                }
-            ]
-        })
+  const getDataStatusValidasi = async () => {
+    // e.preventDefault();
+    let date = tahun + "-01-01";
+    try {
+      const customConfig = {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        params: {
+          rsid: idrs,
+          rlid: 1,
+          tahun: date,
+        },
+      };
+      const results = await axiosJWT.get(
+        "/apisirsadmin/validasi",
+        customConfig
+      );
+
+      if (results.data.data == null) {
+        if (kategoriUser === 3) {
+          setButtonStatus(false);
+        }
+        // setStatusDataValidasi()
+        setStatusValidasi({ value: 3, label: "Belum divalidasi" });
+      } else {
+        setStatusValidasi({
+          value: results.data.data.status_validasi.id,
+          label: results.data.data.status_validasi.nama,
+        });
+        setCatatan(results.data.data.catatan);
+        if (kategoriUser === 3) {
+          setButtonStatus(false);
+        }
+        setStatusDataValidasi(results.data.data.id);
+        // alert('hi')
+      }
+    } catch (error) {
+      console.log(error);
     }
+  };
 
-    return (
-        <div className="container" style={{marginTop: "70px"}}>
-                <div className="row">
-                    <div className="col-md-6">
-                        <div className="card">
-                            <div className="card-body">
-                                <h5 className="card-title h5">Profile Fasyankes</h5>
-                                <div className="form-floating" style={{width:"100%", display:"inline-block"}}>
-                                    <input type="text" className="form-control" id="floatingInput"
-                                        value={ namaRS } disabled={true}/>
-                                    <label htmlFor="floatingInput">Nama</label>
-                                </div>
-                                <div className="form-floating" style={{width:"100%", display:"inline-block"}}>
-                                    <input type="text" className="form-control" id="floatingInput"
-                                        value={ alamatRS} disabled={true}/>
-                                    <label htmlFor="floatingInput">Alamat</label>
-                                </div>
-                                <div className="form-floating" style={{width:"50%", display:"inline-block"}}>
-                                    <input type="text" className="form-control" id="floatingInput"
-                                        value={ namaPropinsi } disabled={true}/>
-                                    <label htmlFor="floatingInput">Provinsi </label>
-                                </div>
-                                <div className="form-floating" style={{width:"50%", display:"inline-block"}}>
-                                    <input type="text" className="form-control" id="floatingInput"
-                                        value= { namaKabKota } disabled={true}/>
-                                    <label htmlFor="floatingInput">Kab/Kota</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="col-md-6">
-                        <div className="card">
-                            <div className="card-body">
-                                <h5 className="card-title h5">Periode Laporan</h5>
-                                <form onSubmit={Cari}>
-                                    <div className="form-floating" style={{width:"100%", display:"inline-block"}}>
-                                        <input name="tahun" type="text" className="form-control" id="floatingInput" 
-                                            placeholder="Tahun" value={tahun} onChange={e => changeHandlerSingle(e)} disabled={false}/>
-                                        <label htmlFor="floatingInput">Tahun</label>
-                                    </div>
-                                    <div className="mt-3 mb-3">
-                                        <button type="submit" className="btn btn-outline-success"><HiSaveAs size={20}/> Cari</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div className="row mt-3 mb-3">
-                    <div className="col-md-12">
-                        <Link to={`/rl31/tambah/`} style={{textDecoration: "none", display: "flex"}}>
-                            <AiFillFileAdd size={30} style={{color:"gray",cursor: "pointer"}}/>
-                                <span style={{color: "gray"}}>RL 3.1 Rawat Inap</span>
-                        </Link>
+  const Cari = async (e) => {
+    e.preventDefault();
+    setSpinner(true);
+    try {
+      const customConfig = {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        params: {
+          koders: idrs,
+          tahun: tahun,
+        },
+      };
+      const results = await axiosJWT.get(
+        "/apisirsadmin/rltigatitiksatu",
+        customConfig
+      );
 
-                        <Table 
-                            className={style.rlTable}
-                            striped
-                            bordered
-                            responsive
-                            style={{ width: "200%" }}
-                        >
-                            <thead>
-                                <tr>
-                                    <th rowSpan="2" style={{"width": "2%"}}>No.</th>
-                                    <th rowSpan="2" style={{"width": "2%"}}></th>
-                                    <th rowSpan="2" style={{"width": "10%"}}>Jenis Pelayanan</th>
-                                    <th rowSpan="2" style={{"width": "5%"}}>Pasien Awal Tahun</th>
-                                    <th rowSpan="2" style={{"width": "5%"}}>Pasien Masuk</th>
-                                    <th rowSpan="2" style={{"width": "5%"}}>Pasien Keluar Hidup</th>
-                                    <th colSpan="2" style={{"width": "5%"}}>Pasien Keluar Mati</th>
-                                    <th rowSpan="2" style={{"width": "5%"}}>Jumlah Lama Dirawat</th>
-                                    <th rowSpan="2" style={{"width": "5%"}}>Pasien Akhir Tahun</th>
-                                    <th rowSpan="2" style={{"width": "5%"}}>Jumlah Hari Perawatan</th>
-                                    <th colSpan="6" style={{"width": "5%"}}>Rincian Hari Perawatan Per Kelas</th>
-                                </tr>
-                                <tr>
-                                    <th style={{"width": "5%"}}>{"< 48 jam"}</th>
-                                    <th style={{"width": "5%"}}>{">= 48 jam"}</th>
-                                    <th style={{"width": "5%"}}>VVIP</th>
-                                    <th style={{"width": "5%"}}>VIP</th>
-                                    <th style={{"width": "5%"}}>1</th>
-                                    <th style={{"width": "5%"}}>2</th>
-                                    <th style={{"width": "5%"}}>3</th>
-                                    <th style={{"width": "5%"}}>Khusus</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {dataRL.map((value, index) => {
-                                    return (
-                                        <tr key={value.id}>
-                                            <td>
-                                                <input type='text' name='id' className="form-control" value={index + 1} disabled={true}/>
-                                            </td>
-                                            <td style={{textAlign: "center", verticalAlign: "middle"}}>
-                                                <ToastContainer />
-                                                <RiDeleteBin5Fill  size={20} onClick={(e) => hapus(value.id)} style={{color: "gray", cursor: "pointer", marginRight: "5px"}} />
-                                                <Link to={`/rl31/ubah/${value.id}`}>
-                                                    <RiEdit2Fill size={20} style={{color:"gray",cursor: "pointer"}}/>
-                                                </Link>
-                                            </td>
-                                            <td>
-                                                <input type="text" name="jenisPelayanan" className="form-control" value={value.jenis_pelayanan.nama} disabled={true} />
-                                            </td>
-                                            <td>
-                                                <input type="text" name="jumlahPasienAwalTahun" className="form-control" value={value.jumlah_pasien_awal_tahun} 
-                                                onChange={e => changeHandler(e, index)} disabled={true} />
-                                            </td>
-                                            <td><input type="text" name="jumlahPasienMasuk" className="form-control" value={value.jumlah_pasien_masuk} 
-                                                onChange={e => changeHandler(e, index)} disabled={true} />
-                                            </td>
-                                            <td><input type="text" name="jumlahPasienKeluarHidup" className="form-control" value={value.pasien_keluar_hidup} 
-                                                onChange={e => changeHandler(e, index)} disabled={true} />
-                                            </td>
-                                            <td><input type="text" name="kurangDari48Jam" className="form-control" value={value.kurang_dari_48_Jam} 
-                                                onChange={e => changeHandler(e, index)} disabled={true} />
-                                            </td>
-                                            <td><input type="text" name="lebihDariAtauSamaDengan48Jam" className="form-control" value={value.lebih_dari_atau_sama_dengan_48_jam} 
-                                                onChange={e => changeHandler(e, index)} disabled={true} />
-                                            </td>
-                                            <td><input type="text" name="jumlahLamaDirawat" className="form-control" value={value.jumlah_lama_dirawat} 
-                                                onChange={e => changeHandler(e, index)} disabled={true} />
-                                            </td>
-                                            <td><input type="text" name="jumlahPasienAkhirTahun" className="form-control" value={value.jumlah_pasien_akhir_tahun} 
-                                                onChange={e => changeHandler(e, index)} disabled={true} />
-                                            </td>
-                                            <td><input type="text" name="jumlahHariPerawatan" className="form-control" value={value.jumlah_hari_perawatan} 
-                                                onChange={e => changeHandler(e, index)} disabled={true} />
-                                            </td>
-                                            <td><input type="text" name="kelasVVIP" className="form-control" value={value.kelas_VVIP} 
-                                                onChange={e => changeHandler(e, index)} disabled={true} />
-                                            </td>
-                                            <td><input type="text" name="kelasVIP" className="form-control" value={value.kelas_VIP} 
-                                                onChange={e => changeHandler(e, index)} disabled={true} />
-                                            </td>
-                                            <td><input type="text" name="kelas1" className="form-control" value={value.kelas_1} 
-                                                onChange={e => changeHandler(e, index)} disabled={true} />
-                                            </td>
-                                            <td><input type="text" name="kelas2" className="form-control" value={value.kelas_2} 
-                                                onChange={e => changeHandler(e, index)} disabled={true} />
-                                            </td>
-                                            <td><input type="text" name="kelas3" className="form-control" value={value.kelas_3} 
-                                                onChange={e => changeHandler(e, index)} disabled={true} />
-                                            </td>
-                                            <td><input type="text" name="kelasKhusus" className="form-control" value={value.kelas_khusus} 
-                                                onChange={e => changeHandler(e, index)} disabled={true} />
-                                            </td>
-                                        </tr>
-                                    )
-                                }) }
-                            </tbody>
-                        </Table>
-                    </div>
+      const rlTigaTitikSatuDetails = results.data.data.map((value) => {
+        return value.rl_tiga_titik_satu_details;
+      });
+
+      let dataRLTigaTitikSatuDetails = [];
+      rlTigaTitikSatuDetails.forEach((element) => {
+        element.forEach((value) => {
+          dataRLTigaTitikSatuDetails.push(value);
+        });
+      });
+
+      setDataRL(dataRLTigaTitikSatuDetails);
+      setNamaFile("RL31_" + idrs);
+      setSpinner(false);
+      setNamaRS(results.data.dataRS.RUMAH_SAKIT);
+    } catch (error) {
+      console.log(error);
+    }
+    getDataStatusValidasi();
+  };
+
+  return (
+    <div className="container" style={{ marginTop: "70px" }}>
+      <div className="row">
+        <div className="col-md-6">
+          <div className="card">
+            <div className="card-body">
+              <h5 className="card-title h5">Validasi RL 3.1</h5>
+              <form onSubmit={Validasi}>
+                <Select
+                  options={optionStatusValidasi}
+                  className="form-control"
+                  name="status_validasi_id"
+                  id="status_validasi_id"
+                  onChange={changeHandlerStatusValidasi}
+                  value={statusValidasi}
+                  isDisabled={buttonStatus}
+                />
+                <div
+                  className="form-floating"
+                  style={{ width: "100%", display: "inline-block" }}
+                >
+                  <input
+                    name="catatan"
+                    type="text"
+                    className="form-control"
+                    id="floatingInputCatatan"
+                    placeholder="catatan"
+                    value={catatan}
+                    onChange={(e) => changeHandlerCatatan(e)}
+                    disabled={buttonStatus}
+                  />
+                  <label htmlFor="floatingInputCatatan">
+                    Catatan Tidak Diterima
+                  </label>
                 </div>
+                <div className="mt-3 mb-3">
+                  <ToastContainer />
+                  <button
+                    type="submit"
+                    disabled={buttonStatus}
+                    className="btn btn-outline-success"
+                    hidden={buttonStatus}
+                  >
+                    <HiSaveAs size={20} /> Simpan
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
-    )
-}
+        <div className="col-md-6">
+          <div className="card">
+            <div className="card-body">
+              <h5 className="card-title h5">Filter RL 3.1</h5>
+              <form onSubmit={Cari}>
+                <div className="col-md-12">
+                  <div className="row">
+                    <div className="col-md-12">
+                      <div
+                        className="form-floating"
+                        style={{ width: "100%", display: "inline-block" }}
+                      >
+                        <select
+                          name="kabkota"
+                          typeof="select"
+                          className="form-control"
+                          id="floatingselect"
+                          placeholder="Kab/Kota"
+                          onChange={searchRS}
+                        >
+                          {options.map((option) => {
+                            return (
+                              <option
+                                key={option.value}
+                                name={option.key}
+                                value={option.value}
+                              >
+                                {option.key}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <label htmlFor="floatingInput">Kab. Kota :</label>
+                      </div>
+                    </div>
 
-export default RL31
+                    <div className="col-md-8">
+                      <div
+                        className="form-floating"
+                        style={{ width: "100%", display: "inline-block" }}
+                      >
+                        <select
+                          name="rumahsakit"
+                          typeof="select"
+                          className="form-control"
+                          id="floatingselect"
+                          placeholder="Rumah Sakit"
+                          onChange={(e) => changeHandlerRS(e)}
+                        >
+                          <option value="">Pilih Rumah Sakit</option>
+                          {optionsrs.map((option) => {
+                            return (
+                              <option
+                                key={option.value}
+                                value={option.value}
+                                kelas={option.kelas}
+                              >
+                                {option.key}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <label htmlFor="floatingInput">Rumah Sakit :</label>
+                      </div>
+                    </div>
+
+                    <div className="col-md-4">
+                      <div
+                        className="form-floating"
+                        style={{ width: "100%", display: "inline-block" }}
+                      >
+                        <input
+                          name="tahun"
+                          type="text"
+                          className="form-control"
+                          id="floatingInput"
+                          placeholder="Tahun"
+                          value={tahun}
+                          onChange={(e) => changeHandlerSingle(e)}
+                        />
+                        <label htmlFor="floatingInput">Tahun</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  <button
+                    type="submit"
+                    disabled={Buttonsearch}
+                    className="btn btn-outline-success"
+                    hidden={Buttonsearch}
+                  >
+                    <HiSaveAs /> Cari
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="row mt-3 mb-3">
+        <div className="col-md-12">
+          <div className="container" style={{ textAlign: "center" }}>
+            {spinner && <Spinner animation="grow" variant="success"></Spinner>}
+            {spinner && <Spinner animation="grow" variant="success"></Spinner>}
+            {spinner && <Spinner animation="grow" variant="success"></Spinner>}
+            {spinner && <Spinner animation="grow" variant="success"></Spinner>}
+            {spinner && <Spinner animation="grow" variant="success"></Spinner>}
+            {spinner && <Spinner animation="grow" variant="success"></Spinner>}
+          </div>
+          <DownloadTableExcel
+            filename={namafile}
+            sheet="data RL 3.1"
+            currentTableRef={tableRef.current}
+          >
+            <button className="btn btn-outline-success mb-2">
+              Export Excel
+            </button>
+          </DownloadTableExcel>
+          <Table
+            className={style.rlTable}
+            striped
+            bordered
+            responsive
+            style={{ width: "200%" }}
+            ref={tableRef}
+          >
+            <thead>
+              <tr>
+                <th rowSpan="2" style={{ width: "2%" }}>
+                  No.
+                </th>
+                <th rowSpan="2" style={{ width: "4%" }}>
+                  RL
+                </th>
+                <th rowSpan="2" style={{ width: "4%" }}>
+                  Nama RS
+                </th>
+                <th rowSpan="2" style={{ width: "4%" }}>
+                  Tahun
+                </th>
+                <th rowSpan="2" style={{ width: "4%" }}>
+                  Kab/Kota
+                </th>
+                <th rowSpan="2" style={{ width: "10%" }}>
+                  Jenis Pelayanan
+                </th>
+                <th rowSpan="2" style={{ width: "5%" }}>
+                  Pasien Awal Tahun
+                </th>
+                <th rowSpan="2" style={{ width: "5%" }}>
+                  Pasien Masuk
+                </th>
+                <th rowSpan="2" style={{ width: "5%" }}>
+                  Pasien Keluar Hidup
+                </th>
+                <th colSpan="2" style={{ width: "5%" }}>
+                  Pasien Keluar Mati
+                </th>
+                <th rowSpan="2" style={{ width: "5%" }}>
+                  Jumlah Lama Dirawat
+                </th>
+                <th rowSpan="2" style={{ width: "5%" }}>
+                  Pasien Akhir Tahun
+                </th>
+                <th rowSpan="2" style={{ width: "5%" }}>
+                  Jumlah Hari Perawatan
+                </th>
+                <th colSpan="6" style={{ width: "5%" }}>
+                  Rincian Hari Perawatan Per Kelas
+                </th>
+              </tr>
+              <tr>
+                <th style={{ width: "5%" }}>{"< 48 jam"}</th>
+                <th style={{ width: "5%" }}>{">= 48 jam"}</th>
+                <th style={{ width: "5%" }}>VVIP</th>
+                <th style={{ width: "5%" }}>VIP</th>
+                <th style={{ width: "5%" }}>1</th>
+                <th style={{ width: "5%" }}>2</th>
+                <th style={{ width: "5%" }}>3</th>
+                <th style={{ width: "5%" }}>Khusus</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dataRL.map((value, index) => {
+                return (
+                  <tr key={value.id}>
+                    <td>
+                      <label htmlFor="">{index + 1}</label>
+                    </td>
+                    <td>RL 3.1</td>
+                    <td>{namaRS}</td>
+                    <td>{value.tahun}</td>
+                    <td>{namakabkota}</td>
+                    <td>
+                      <label htmlFor="">{value.jenis_pelayanan.nama}</label>
+                    </td>
+                    <td>
+                      <label htmlFor="">{value.jumlah_pasien_awal_tahun}</label>
+                    </td>
+                    <td>
+                      <label htmlFor="">{value.jumlah_pasien_masuk}</label>
+                    </td>
+                    <td>
+                      <label htmlFor="">{value.pasien_keluar_hidup}</label>
+                    </td>
+                    <td>
+                      <label htmlFor="">{value.kurang_dari_48_Jam}</label>
+                    </td>
+                    <td>
+                      <label htmlFor="">
+                        {value.lebih_dari_atau_sama_dengan_48_jam}
+                      </label>
+                    </td>
+                    <td>
+                      <label htmlFor="">{value.jumlah_lama_dirawat}</label>
+                    </td>
+                    <td>
+                      <label htmlFor="">
+                        {value.jumlah_pasien_akhir_tahun}
+                      </label>
+                    </td>
+                    <td>
+                      <label htmlFor="">{value.jumlah_hari_perawatan}</label>
+                    </td>
+                    <td>
+                      <label htmlFor="">{value.kelas_VVIP}</label>
+                    </td>
+                    <td>
+                      <label htmlFor="">{value.kelas_VIP}</label>
+                    </td>
+                    <td>
+                      <label htmlFor="">{value.kelas_1}</label>
+                    </td>
+                    <td>
+                      <label htmlFor="">{value.kelas_2}</label>
+                    </td>
+                    <td>
+                      <label htmlFor="">{value.kelas_3}</label>
+                    </td>
+                    <td>
+                      <label htmlFor="">{value.kelas_khusus}</label>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default RL31;
