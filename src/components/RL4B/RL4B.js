@@ -14,6 +14,8 @@ import { AiFillFileAdd } from "react-icons/ai";
 import Spinner from "react-bootstrap/Spinner";
 import { DownloadTableExcel } from "react-export-table-to-excel";
 import Select from "react-select";
+import FloatingLabel from "react-bootstrap/FloatingLabel";
+import Form from "react-bootstrap/Form";
 
 const RL4B = () => {
   const [namaPropinsi, setNamaPropinsi] = useState("");
@@ -164,6 +166,7 @@ const RL4B = () => {
   };
 
   const changeHandlerSingle = (event) => {
+    setButtonStatus(true);
     setTahun(event.target.value);
   };
 
@@ -409,7 +412,8 @@ const RL4B = () => {
                   value={statusValidasi}
                   isDisabled={buttonStatus}
                 />
-                <div
+
+                {/* <div
                   className="form-floating"
                   style={{ width: "100%", display: "inline-block" }}
                 >
@@ -424,7 +428,21 @@ const RL4B = () => {
                     disabled={buttonStatus}
                   />
                   <label htmlFor="floatingInputCatatan">Catatan :</label>
-                </div>
+                </div> */}
+
+                <FloatingLabel label="Catatan :">
+                  <Form.Control
+                    as="textarea"
+                    name="catatan"
+                    placeholder="Leave a comment here"
+                    id="floatingInputCatatan"
+                    style={{ height: "100px" }}
+                    disabled={buttonStatus}
+                    value={catatan}
+                    onChange={(e) => changeHandlerCatatan(e)}
+                  />
+                </FloatingLabel>
+
                 <div className="mt-3">
                   <ToastContainer />
                   <button
