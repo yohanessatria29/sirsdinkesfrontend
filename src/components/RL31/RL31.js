@@ -39,13 +39,15 @@ const RL31 = () => {
     value: 3,
     label: "Belum divalidasi",
   });
+  const [statusRecordValidasi, setStatusRecordValidasi] = useState("post");
   const [statusValidasiId, setStatusValidasiId] = useState(3);
   const [optionStatusValidasi, setOptionStatusValidasi] = useState([]);
-  const [catatan, setCatatan] = useState("");
+  const [catatan, setCatatan] = useState(" ");
   const [buttonStatus, setButtonStatus] = useState(true);
   const [statusDataValidasi, setStatusDataValidasi] = useState();
   const [kategoriUser, setKategoriUser] = useState();
   const [Buttonsearch, setButtonsearch] = useState(true);
+  const [validasiId, setValidasiId] = useState(null);
 
   useEffect(() => {
     refreshToken();
@@ -199,105 +201,170 @@ const RL31 = () => {
     setSpinner(true);
     let date = tahun + "-01-01";
 
-    if (statusValidasiId === 3) {
-      alert("Silahkan pilih status validasi terlebih dahulu");
-      setSpinner(false);
-    } else {
-      if (statusValidasiId === 2 && catatan === "") {
-        alert("Silahkan isi catatan apabila laporan tidak valid");
+    if (statusRecordValidasi == "post") {
+      try {
+        const customConfig = {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        };
+        const result = await axiosJWT.post(
+          "/apisirs/validasi",
+          {
+            rsId: idrs,
+            rlId: 1,
+            tahun: date,
+            statusValidasiId: statusValidasiId,
+            catatan: catatan,
+          },
+          customConfig
+        );
+        setStatusRecordValidasi("patch");
         setSpinner(false);
-      } else if (idrs === "") {
-        alert("Silahkan pilih rumah sakit");
+        toast("Data Berhasil Disimpan", {
+          position: toast.POSITION.TOP_RIGHT,
+        });
+        setValidasiId(result.data.data.id);
+        setStatusRecordValidasi("patch");
+      } catch (error) {
+        toast(
+          `Data tidak bisa disimpan karena ,${error.response.data.message}`,
+          {
+            position: toast.POSITION.TOP_RIGHT,
+          }
+        );
         setSpinner(false);
-      } else {
-        try {
-          const customConfig = {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            params: {
-              rsid: idrs,
-              rlid: 1,
-              tahun: date,
-            },
-          };
-          const results = await axiosJWT.get("/apisirs/validasi", customConfig);
-
-          if (results.data.data == null) {
-          } else {
-            setStatusDataValidasi(results.data.data.id);
-          }
-        } catch (error) {
-          console.log(error);
-        }
-
-        if (statusDataValidasi == null) {
-          try {
-            const customConfig = {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            };
-            const result = await axiosJWT.post(
-              "/apisirs/validasi",
-              {
-                rsId: idrs,
-                rlId: 1,
-                tahun: date,
-                statusValidasiId: statusValidasiId,
-                catatan: catatan,
-              },
-              customConfig
-            );
-            // console.log(result.data)
-            setSpinner(false);
-            toast("Data Berhasil Disimpan", {
-              position: toast.POSITION.TOP_RIGHT,
-            });
-          } catch (error) {
-            toast(
-              `Data tidak bisa disimpan karena ,${error.response.data.message}`,
-              {
-                position: toast.POSITION.TOP_RIGHT,
-              }
-            );
-            setSpinner(false);
-          }
-        } else {
-          try {
-            const customConfig = {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            };
-            await axiosJWT.patch(
-              "/apisirs/validasi/" + statusDataValidasi,
-              {
-                statusValidasiId: statusValidasiId,
-                catatan: catatan,
-              },
-              customConfig
-            );
-            setSpinner(false);
-            toast("Data Berhasil Diupdate", {
-              position: toast.POSITION.TOP_RIGHT,
-            });
-          } catch (error) {
-            console.log(error);
-            toast("Data Gagal Diupdate", {
-              position: toast.POSITION.TOP_RIGHT,
-            });
-            setButtonStatus(false);
-            setSpinner(false);
-          }
-        }
-
-        getDataStatusValidasi();
+      }
+    } else if (statusRecordValidasi == "patch") {
+      try {
+        const customConfig = {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        };
+        await axiosJWT.patch(
+          "/apisirs/validasi/" + validasiId,
+          {
+            statusValidasiId: statusValidasiId,
+            catatan: catatan,
+          },
+          customConfig
+        );
+        setSpinner(false);
+        toast("data berhasil diubah", {
+          position: toast.POSITION.TOP_RIGHT,
+        });
+      } catch (error) {
+        console.log(error);
+        toast("Data Gagal Diupdate", {
+          position: toast.POSITION.TOP_RIGHT,
+        });
+        setButtonStatus(false);
+        setSpinner(false);
       }
     }
+
+    // getDataStatusValidasi();
+    // if (statusValidasiId === 3) {
+    //   alert("Silahkan pilih status validasi terlebih dahulu");
+    //   setSpinner(false);
+    // } else {
+    //   if (statusValidasiId === 2 && catatan === "") {
+    //     alert("Silahkan isi catatan apabila laporan tidak valid");
+    //     setSpinner(false);
+    //   } else if (idrs === "") {
+    //     alert("Silahkan pilih rumah sakit");
+    //     setSpinner(false);
+    //   } else {
+    //     try {
+    //       const customConfig = {
+    //         headers: {
+    //           "Content-Type": "application/json",
+    //           Authorization: `Bearer ${token}`,
+    //         },
+    //         params: {
+    //           rsid: idrs,
+    //           rlid: 1,
+    //           tahun: date,
+    //         },
+    //       };
+    //       const results = await axiosJWT.get("/apisirs/validasi", customConfig);
+
+    //       if (results.data.data == null) {
+    //       } else {
+    //         setStatusDataValidasi(results.data.data.id);
+    //       }
+    //     } catch (error) {
+    //       console.log(error);
+    //     }
+
+    //     if (statusDataValidasi == null) {
+    //       try {
+    //         const customConfig = {
+    //           headers: {
+    //             "Content-Type": "application/json",
+    //             Authorization: `Bearer ${token}`,
+    //           },
+    //         };
+    //         const result = await axiosJWT.post(
+    //           "/apisirs/validasi",
+    //           {
+    //             rsId: idrs,
+    //             rlId: 1,
+    //             tahun: date,
+    //             statusValidasiId: statusValidasiId,
+    //             catatan: catatan,
+    //           },
+    //           customConfig
+    //         );
+    //         // console.log(result.data)
+    //         setSpinner(false);
+    //         toast("Data Berhasil Disimpan", {
+    //           position: toast.POSITION.TOP_RIGHT,
+    //         });
+    //       } catch (error) {
+    //         toast(
+    //           `Data tidak bisa disimpan karena ,${error.response.data.message}`,
+    //           {
+    //             position: toast.POSITION.TOP_RIGHT,
+    //           }
+    //         );
+    //         setSpinner(false);
+    //       }
+    //     } else {
+    //       try {
+    //         const customConfig = {
+    //           headers: {
+    //             "Content-Type": "application/json",
+    //             Authorization: `Bearer ${token}`,
+    //           },
+    //         };
+    //         await axiosJWT.patch(
+    //           "/apisirs/validasi/" + statusDataValidasi,
+    //           {
+    //             statusValidasiId: statusValidasiId,
+    //             catatan: catatan,
+    //           },
+    //           customConfig
+    //         );
+    //         setSpinner(false);
+    //         toast("Data Berhasil Diupdate", {
+    //           position: toast.POSITION.TOP_RIGHT,
+    //         });
+    //       } catch (error) {
+    //         console.log(error);
+    //         toast("Data Gagal Diupdate", {
+    //           position: toast.POSITION.TOP_RIGHT,
+    //         });
+    //         setButtonStatus(false);
+    //         setSpinner(false);
+    //       }
+    //     }
+
+    //   }
+    // }
   };
 
   const getDataStatusValidasi = async () => {
@@ -319,9 +386,14 @@ const RL31 = () => {
 
       if (results.data.data == null) {
         // setStatusDataValidasi()
-        setStatusValidasi({ value: 3, label: "Belum divalidasi" });
-        setCatatan(" ");
+        setStatusRecordValidasi("post");
+        // setStatusValidasi({ value: 3, label: "Belum divalidasi" });
+        // setCatatan(" ");
       } else {
+        // setValidasiId = results.data.data.id
+        // console.log(setValidasiId)
+        setValidasiId(results.data.data.id);
+        setStatusRecordValidasi("patch");
         setStatusValidasi({
           value: results.data.data.status_validasi.id,
           label: results.data.data.status_validasi.nama,
@@ -394,6 +466,7 @@ const RL31 = () => {
       toast("Filter Tidak Boleh Kosong...", {
         position: toast.POSITION.TOP_RIGHT,
       });
+      setSpinner(false);
     }
   };
 
@@ -550,9 +623,9 @@ const RL31 = () => {
                 <div className="mt-3">
                   <button
                     type="submit"
-                    disabled={Buttonsearch}
+                    // disabled={Buttonsearch}
                     className="btn btn-outline-success"
-                    hidden={Buttonsearch}
+                    // hidden={Buttonsearch}
                   >
                     <HiSaveAs /> Cari
                   </button>
